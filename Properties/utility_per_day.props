@@ -1,0 +1,5 @@
+const int day = 24*60*60*1000*10;
+
+// We assume the basic time unit to be 100 micro seconds.
+(day/(MAX_time+crash_time))*R{"utility"}min=? [ F (time=MAX_time|silent_data_corruption) ]
+

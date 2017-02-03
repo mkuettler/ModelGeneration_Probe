@@ -1,0 +1,55 @@
+
+
+//const int MAX_utility = ${MAX_utility};
+//module utility
+// utility: [0..MAX_utility] init 0;
+
+//[TRANSFER_from_analysis_via_IPC_11_to_send_update] true -> (utility' = min(MAX_utility,utility+1));
+//endmodule
+
+const int MAX_time;
+module time
+ time: [0..MAX_time] init 0;
+
+% for process1 in processes:
+ % for process2 in processes:
+  % for cap1 in process1.caps:
+   % for cap2 in process2.caps:
+    % if (process1.caps[cap1].id == process2.caps[cap2].id) and (process1.caps[cap1].access=="client") and (process2.caps[cap2].access=="server"):
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_${process2.name}] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_${process2.name}] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+    % endif
+   % endfor
+  % endfor
+ % endfor
+% endfor
+
+% for process1 in processes:
+ % for cap1 in process1.caps:
+  % if not "server" in [process2.caps[IPC].access for IPC in process2.caps]:
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_nowhere] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_nowhere] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+  % endif
+ % endfor
+% endfor
+
+% for process1 in processes:
+[${process1.name}_WORKING] (process_${process1.name}_working_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[${process1.name}_WORKING] (process_${process1.name}_working_time_handling = fixed)    -> (time' = min(MAX_time,time+process_${process1.name}_working_time));
+
+ % for process2 in processes:
+  % if (not process1 == process2) and (not process_is_client[process1]):
+[ANSWER_from_${process1.name}_to_${process2.name}] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_${process1.name}_to_${process2.name}] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+  % endif
+ % endfor
+% endfor
+
+[RESTART_progress] (crash_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[RESTART_progress] (crash_time_handling = fixed)    -> (time' = min(MAX_time,time+crash_time)); 
+
+// repair
+//TODO
+
+endmodule

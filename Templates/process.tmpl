@@ -1,0 +1,223 @@
+<%page args="process"/>
+## We differ following types of processes: 
+## * processes that can only send messages (and receive answers)
+## * processes that can both send and receive messages
+## * processes that can only receve messages (and send answers) 
+## --
+## * processes that send messages and have only one / more that one possible communication partner
+##   * the choice in the communication partner is eiterh probabilistic or non-deterministic
+
+
+% if not "server" in [each.access for each in process.caps.values()]:
+// Process ${process.name} has no IPC gate for receiving messages. We thus omit server states.
+% endif
+
+module process_${process.name}
+% if not "server" in [each.access for each in process.caps.values()]:
+  ${process.name}_location : [0..MAX_CL_LOC] init working;
+  process_${process.name}_message_type : [-1..2] init message; // -1: none, 0: answer, 1: message, 2: ack
+% else:
+ % if process.ack:
+  ${process.name}_location : [0..MAX_SE_LOC] init blocked_as_client;
+ % else:
+  ${process.name}_location : [0..MAX_SE_LOC] init blocked_as_server;
+ % endif 
+  process_${process.name}_message_type : [-1..2] init none; // 0: answer, 1: message, 2: ack.
+% endif
+% if (process.communicate == "probabilistic") and ([each.access for each in process.caps.values()].count("client")>=2):
+  next_target_IPC_id : [0..max_IPC_id] init 0;
+% endif
+% if ("client" in [each.access for each in process.caps.values()]) and ("server" in [each.access for each in process.caps.values()]) and (process.prob_call[0]=="once"):
+  process_${process.name}_sent_a_message: bool init false;
+% endif
+
+
+// 'Working' transactions. Working time depends on the concrete message type that is the goal of the working step (ack, answer, message).
+// The conrete communication partner is chocen at the end of a wirking step.
+ % if (process.communicate == "probabilistic") and ([each.access for each in process.caps.values()].count("client")>=2):
+## more than one communication partner, choice is probabilistic
+[${process.name}_WORKING] (!stop) & (${process.name}_location = working) & (process_${process.name}_message_type = message) 
+     -> ${' + '.join(["prob_process_{0}_message_working * prob_message_from_{0}_to_gate_{1}: ({0}_location' = about_to_send) & (process_{0}_message_type' = none) & (next_target_IPC_id' = {1})".format(process.name,cap_id) for cap_id in process.probability_communicate.keys()])}
+   + (1-prob_process_${process.name}_message_working) : true;
+ % else:
+## we do not need to choose a communication partner, there is only one or the choice is non-deterministic
+[${process.name}_WORKING] (!stop) & (${process.name}_location = working) & (process_${process.name}_message_type = message) -> prob_process_${process.name}_message_working: (${process.name}_location' = about_to_send) & (process_${process.name}_message_type' = none)   + (1-prob_process_${process.name}_message_working) : true;
+ % endif
+ % if "server" in [each.access for each in process.caps.values()]:
+ ## the process might also work on an answer or ack
+[${process.name}_WORKING] (!stop) & (${process.name}_location = working) & (process_${process.name}_message_type = answer)  -> prob_process_${process.name}_answer_working:  (${process.name}_location' = about_to_answer) & (process_${process.name}_message_type' = none) + (1-prob_process_${process.name}_answer_working) : true;
+[${process.name}_WORKING] (!stop) & (${process.name}_location = working) & (process_${process.name}_message_type = ack)     -> prob_process_${process.name}_ack_working:     (${process.name}_location' = about_to_ack) & (process_${process.name}_message_type' = none)    + (1-prob_process_${process.name}_ack_working) : true;
+ % endif
+
+// System calls. 
+% for IPC in process.caps:
+## each IPC gate can be used for a system call.
+ % if process.caps[IPC].access == "client":
+## we first handle system calls for message sending (no answer, no ack)
+  % if (process.communicate == "nondeterministic") | ([each.access for each in process.caps.values()].count("client")<2):
+   % if ("server" in [each.access for each in process.caps.values()]) and (process.prob_call[0]=="once"):
+[${process.name}_withCapID_${process.caps[IPC].id}_as_client_SYSCALL] (!stop) & (${process.name}_location = about_to_send)   -> (${process.name}_location' = blocked_as_client) & (process_${process.name}_sent_a_message' = true) ;
+   % else:
+[${process.name}_withCapID_${process.caps[IPC].id}_as_client_SYSCALL] (!stop) & (${process.name}_location = about_to_send)   -> (${process.name}_location' = blocked_as_client) ;
+   % endif   
+  % else:
+   % if ("server" in [each.access for each in process.caps.values()]) and (process.prob_call[0]=="once"):
+[${process.name}_withCapID_${process.caps[IPC].id}_as_client_SYSCALL] (!stop) & (${process.name}_location = about_to_send) & (next_target_IPC_id = ${process.caps[IPC].id}) -> (${process.name}_location' = blocked_as_client) & (next_target_IPC_id' = 0) & (process_${process.name}_sent_a_message' = true) ;  
+   % else:
+[${process.name}_withCapID_${process.caps[IPC].id}_as_client_SYSCALL] (!stop) & (${process.name}_location = about_to_send) & (next_target_IPC_id = ${process.caps[IPC].id}) -> (${process.name}_location' = blocked_as_client) & (next_target_IPC_id' = 0);     
+   % endif
+  % endif
+ % else:
+## it's a server capability. There are three possibilities: We either produce an ack, or an answer or just want to receive a new message
+// We re-use the blocked_as_client location, since this does what we want 
+[${process.name}_as_server_ack_SYSCALL] (!stop) & (${process.name}_location = about_to_ack)    -> (${process.name}_location' = blocked_as_client) ;
+
+[${process.name}_withCapID_${process.caps[IPC].id}_as_server_SYSCALL] (!stop) & (${process.name}_location = about_to_answer) -> (${process.name}_location' = blocked_as_server);
+[${process.name}_withCapID_${process.caps[IPC].id}_as_server_SYSCALL_only_receive] (!stop) & (${process.name}_location = about_to_syscall_server) -> (${process.name}_location' = blocked_as_server);
+ % endif
+% endfor
+
+// Wake up after message transfer
+% if not "server" in [each.access for each in process.caps.values()]:
+## the process cannot receive messages, i.e., when woken up it did receive an answer or ack and will start producing the next message.
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);
+% endif
+
+% if "server" in [each.access for each in process.caps.values()]:
+## the process can receive messages. There are many different possibilities..
+## first, let's assume it can send messages
+ % if ("client" in [each.access for each in process.caps.values()]):
+## two cases: the process is in its blocked_as_client location or its in its blocked_as_server_location
+## We here handle only the first one the second one is also handled below
+## We now go through all combinations of 
+## * the process does / does not use acks, 
+## * probabilistically / non-deterministically calls another process 
+## * one time / several times
+## no-ack-scenarios
+  % if (not process.ack) and (process.call_type == "probabilistic") and (process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) & (!process_${process.name}_sent_a_message)
+  -> prob_process_${process.name}_call:     (${process.name}_location' = working) & (process_${process.name}_message_type' = message)
+   + (1-prob_process_${process.name}_call): (${process.name}_location' = working) & (process_${process.name}_message_type' = answer) & (process_${process.name}_sent_a_message' = false);    
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) & (process_${process.name}_sent_a_message)
+  -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);    
+  % endif
+  % if (not process.ack) and (process.call_type == "probabilistic") and (not process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client)
+  -> prob_process_${process.name}_call:     (${process.name}_location' = working) & (process_${process.name}_message_type' = message)
+   + (1-prob_process_${process.name}_call): (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);
+  % endif
+  % if (not process.ack) and (process.call_type == "nondeterministic") and (process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) & (!process_${process.name}_sent_a_message) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer) & (process_${process.name}_sent_a_message' = false);
+  % endif
+  % if (not process.ack) and (process.call_type == "nondeterministic") and (not process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);
+  % endif
+## ack-scenarios
+  % if (process.ack) and (process.call_type == "probabilistic") and (process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) & (!process_${process.name}_sent_a_message)
+  -> prob_process_${process.name}_call:     (${process.name}_location' = working) & (process_${process.name}_message_type' = message)
+   + (1-prob_process_${process.name}_call): (${process.name}_location' = about_to_syscall_server) & (process_${process.name}_sent_a_message' = false);     
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) & (process_${process.name}_sent_a_message)
+  -> (${process.name}_location' = about_to_syscall_server) & (process_${process.name}_sent_a_message' = false);     
+  % endif
+  % if (process.ack) and (process.call_type == "probabilistic") and (not process.prob_call[0]=="once"):  
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) 
+  -> prob_process_${process.name}_call:     (${process.name}_location' = working) & (process_${process.name}_message_type' = message)
+   + (1-prob_process_${process.name}_call): (${process.name}_location' = about_to_syscall_server);
+  % endif
+  % if (process.ack) and (process.call_type == "nondeterministic") and (process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) & (!process_${process.name}_sent_a_message) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = about_to_syscall_server) &(process_${process.name}_sent_a_message' = false);     
+  % endif
+  % if (process.ack) and (process.call_type == "nondeterministic") and (not process.prob_call[0]=="once"):  
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = about_to_syscall_server);
+  % endif
+ % endif
+## now, we assume that the process can only answer / ack messages We have to differ ack vs. no-ack, but call type and the number of calls is not relevant
+ % if not ("client" in [each.access for each in process.caps.values()]):
+  % if not process.ack: 
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client)
+  -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);     
+  % endif
+  % if process.ack: 
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_client) -> (${process.name}_location' = about_to_syscall_server);
+  % endif
+ % endif
+% endif
+
+
+## We now handle processes being in the blocked_as_server location
+## We only do this for servers
+% if "server" in [each.access for each in process.caps.values()]:
+ ## When blocked as server, the process waits for a new message. 
+ ## We have to differ whether it sends an ack or an answer
+ % if process.ack: 
+  ## The process goes in its working state, preparing an ack
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = ack);
+ % endif
+
+ ## if the process does not have client capabilities, it either sends an ack or an answer
+ % if (not "client" in [process.caps[IPC].access for IPC in process.caps]) and (not process.ack):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server) -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);
+ % endif
+ % if (not "client" in [process.caps[IPC].access for IPC in process.caps]) and (process.ack):
+## is already handled above
+ % endif
+ 
+ % if "client" in [process.caps[IPC].access for IPC in process.caps]:
+  ## no-ack-scenarios
+  % if (not process.ack) and (process.call_type == "probabilistic") and (process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server) & (!process_${process.name}_sent_a_message)
+     -> prob_process_${process.name}_call : (${process.name}_location' = working) & (process_${process.name}_message_type' = message)
+   + (1-prob_process_${process.name}_call): (${process.name}_location' = working) & (process_${process.name}_message_type' = answer) & (process_${process.name}_sent_a_message' = false);
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server) & (process_${process.name}_sent_a_message)
+     -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);
+  % endif
+  % if (not process.ack) and (process.call_type == "probabilistic") and (not process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server)
+     -> prob_process_${process.name}_call : (${process.name}_location' = working) & (process_${process.name}_message_type' = message)
+   + (1-prob_process_${process.name}_call): (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);    
+  % endif   
+  % if (not process.ack) and (process.call_type == "nondeterministic") and (process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server) & (!process_${process.name}_sent_a_message)
+     -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server)
+     -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer) & (process_${process_name}_sent_a_message' = false);
+  % endif
+  % if (not process.ack) and (process.call_type == "nondeterministic") and (not process.prob_call[0]=="once"):
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server)
+     -> (${process.name}_location' = working) & (process_${process.name}_message_type' = message);    
+[${process.name}_WAKE_UP] (!stop) & (${process.name}_location = blocked_as_server)
+     -> (${process.name}_location' = working) & (process_${process.name}_message_type' = answer);    
+  % endif      
+  ## ack-scenarios are already handled above
+ % endif
+ ## handling of the process not being able to send messages is already handled above
+% endif
+
+   
+//restart
+[RESTART] true ->   
+% if not "server" in [each.access for each in process.caps.values()]:
+    (${process.name}_location' = working)
+  & (process_${process.name}_message_type' = message)
+% else:
+ % if process.ack:
+     (${process.name}_location' = blocked_as_client);
+ % else:
+   (${process.name}_location' = blocked_as_server)
+ % endif 
+   & (process_${process.name}_message_type' = none)
+% endif
+% if (process.communicate == "probabilistic") and ([each.access for each in process.caps.values()].count("client")>=2):
+   & (next_target_IPC_id' = 0)
+% endif
+% if ("client" in [each.access for each in process.caps.values()]) and ("server" in [each.access for each in process.caps.values()]) and (process.prob_call[0]=="once"):
+   & (process_${process.name}_sent_a_message' = false)
+% endif
+;
+endmodule
+

@@ -1,0 +1,1835 @@
+
+// Model of an inter process communication protocol. This model is created using a tool chain. 
+// For modification please do not change this model but the input script processes.data and 
+// the template script createModel.py 
+// We modeled the processes' message transfer behavior after all capabilities are allocated.
+// An initial phase is NOT modeled.
+// We assume the all memory to be correct after initial / restart phase.
+
+dtmc
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// CONSTANT DEFINITIONS
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// TIME HANDLING
+const int ipc_time_handling = fixed;
+const int repair_time_handling=fixed;
+const int crash_time_handling=fixed;
+const int process_rom_measure1_answer_working_time_handling  = fixed;
+const int process_rom_measure1_message_working_time_handling = fixed;
+const int process_rom_measure1_ack_working_time_handling     = fixed;
+formula process_rom_measure1_working_time_handling = 
+     (process_rom_measure1_message_type = message ? process_rom_measure1_message_working_time_handling
+    : process_rom_measure1_message_type = answer  ? process_rom_measure1_answer_working_time_handling
+    :                                                  process_rom_measure1_ack_working_time_handling);
+const int process_rom_measure2_answer_working_time_handling  = fixed;
+const int process_rom_measure2_message_working_time_handling = fixed;
+const int process_rom_measure2_ack_working_time_handling     = fixed;
+formula process_rom_measure2_working_time_handling = 
+     (process_rom_measure2_message_type = message ? process_rom_measure2_message_working_time_handling
+    : process_rom_measure2_message_type = answer  ? process_rom_measure2_answer_working_time_handling
+    :                                                  process_rom_measure2_ack_working_time_handling);
+const int process_rom_analysis_answer_working_time_handling  = fixed;
+const int process_rom_analysis_message_working_time_handling = fixed;
+const int process_rom_analysis_ack_working_time_handling     = fixed;
+formula process_rom_analysis_working_time_handling = 
+     (process_rom_analysis_message_type = message ? process_rom_analysis_message_working_time_handling
+    : process_rom_analysis_message_type = answer  ? process_rom_analysis_answer_working_time_handling
+    :                                                  process_rom_analysis_ack_working_time_handling);
+const int process_rom_control_answer_working_time_handling  = fixed;
+const int process_rom_control_message_working_time_handling = fixed;
+const int process_rom_control_ack_working_time_handling     = fixed;
+formula process_rom_control_working_time_handling = 
+     (process_rom_control_message_type = message ? process_rom_control_message_working_time_handling
+    : process_rom_control_message_type = answer  ? process_rom_control_answer_working_time_handling
+    :                                                  process_rom_control_ack_working_time_handling);
+const int process_rom_send_answer_working_time_handling  = fixed;
+const int process_rom_send_message_working_time_handling = fixed;
+const int process_rom_send_ack_working_time_handling     = fixed;
+formula process_rom_send_working_time_handling = 
+     (process_rom_send_message_type = message ? process_rom_send_message_working_time_handling
+    : process_rom_send_message_type = answer  ? process_rom_send_answer_working_time_handling
+    :                                                  process_rom_send_ack_working_time_handling);
+
+// TIMES
+const int ipc_time = 0;
+const int normalized_ipc_time = floor(0);
+const int answer_time = 0;
+const int repair_time=100;
+const int crash_time=10000;
+const int process_rom_measure1_answer_working_time  = 1;
+const int process_rom_measure1_message_working_time = 1;
+const int process_rom_measure1_ack_working_time     = 1;
+formula process_rom_measure1_working_time = 
+     (process_rom_measure1_message_type = message ? process_rom_measure1_message_working_time
+    : process_rom_measure1_message_type = answer  ? process_rom_measure1_answer_working_time
+    :                                                  process_rom_measure1_ack_working_time);
+const int process_rom_measure2_answer_working_time  = 1;
+const int process_rom_measure2_message_working_time = 1;
+const int process_rom_measure2_ack_working_time     = 1;
+formula process_rom_measure2_working_time = 
+     (process_rom_measure2_message_type = message ? process_rom_measure2_message_working_time
+    : process_rom_measure2_message_type = answer  ? process_rom_measure2_answer_working_time
+    :                                                  process_rom_measure2_ack_working_time);
+const int process_rom_analysis_answer_working_time  = 5;
+const int process_rom_analysis_message_working_time = 5;
+const int process_rom_analysis_ack_working_time     = 5;
+formula process_rom_analysis_working_time = 
+     (process_rom_analysis_message_type = message ? process_rom_analysis_message_working_time
+    : process_rom_analysis_message_type = answer  ? process_rom_analysis_answer_working_time
+    :                                                  process_rom_analysis_ack_working_time);
+const int process_rom_control_answer_working_time  = 25;
+const int process_rom_control_message_working_time = 25;
+const int process_rom_control_ack_working_time     = 25;
+formula process_rom_control_working_time = 
+     (process_rom_control_message_type = message ? process_rom_control_message_working_time
+    : process_rom_control_message_type = answer  ? process_rom_control_answer_working_time
+    :                                                  process_rom_control_ack_working_time);
+const int process_rom_send_answer_working_time  = 50;
+const int process_rom_send_message_working_time = 50;
+const int process_rom_send_ack_working_time     = 50;
+formula process_rom_send_working_time = 
+     (process_rom_send_message_type = message ? process_rom_send_message_working_time
+    : process_rom_send_message_type = answer  ? process_rom_send_answer_working_time
+    :                                                  process_rom_send_ack_working_time);
+
+// communication probabilities
+const double prob_message_from_rom_analysis_to_gate_11 = 0.02;
+const double prob_message_from_rom_analysis_to_gate_9 = 0.4;
+const double prob_message_from_rom_analysis_to_gate_10 = 0.58;
+
+// error probabilities
+const double prob_error_per_timestep  = 1e-07;
+const double prob_correctable_error_per_timestep      = prob_error_per_timestep * 0;
+const double prob_crash_per_timestep                  = prob_error_per_timestep * 0.99;
+const double prob_silent_data_corruption_per_timestep = prob_error_per_timestep * 0.01;
+//const double prob_no_error_per_timestep               = (1-(prob_correctable_error_per_timestep+prob_crash_per_timestep+prob_silent_data_corruption_per_timestep));
+// errors during crash / recovery may be different
+const double prob_correctable_error_per_crash_timestep      = 0;
+const double prob_crash_per_crash_timestep                  = 0;
+const double prob_silent_data_corruption_per_crash_timestep = 0;
+//const double prob_no_error_per_crash_timestep               = (1-(prob_correctable_error_per_crash_timestep+prob_crash_per_crash_timestep+prob_silent_data_corruption_per_crash_timestep));
+
+// errors during transfer
+const double prob_correctable_error_transfer      = (ipc_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,ipc_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_transfer                  = (ipc_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,ipc_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_transfer = (ipc_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,ipc_time)) : prob_silent_data_corruption_per_timestep);
+
+// errors during answering
+const double prob_correctable_error_answer      = (ipc_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,answer_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_answer                  = (ipc_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,answer_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_answer = (ipc_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,answer_time)) : prob_silent_data_corruption_per_timestep);
+
+// errors during repair
+const double prob_correctable_error_repair      = (repair_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,repair_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_repair                  = (repair_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,repair_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_repair = (repair_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,repair_time)) : prob_silent_data_corruption_per_timestep);
+
+// errors during crash/recovery
+const double prob_correctable_error_crash      = (crash_time_handling = fixed? (1-pow(1-prob_correctable_error_per_crash_timestep,crash_time)) : prob_correctable_error_per_crash_timestep);
+const double prob_crash_crash                  = (crash_time_handling = fixed? (1-pow(1-prob_crash_per_crash_timestep,crash_time)) : prob_crash_per_crash_timestep);
+const double prob_silent_data_corruption_crash = (crash_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_crash_timestep,crash_time)) : prob_silent_data_corruption_per_crash_timestep);
+
+// errors during a process' work
+const double prob_correctable_error_process_rom_measure1_message_working = (process_rom_measure1_message_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_measure1_message_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_measure1_answer_working  = (process_rom_measure1_answer_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_measure1_answer_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_measure1_ack_working     = (process_rom_measure1_ack_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_measure1_ack_working_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_process_rom_measure1_message_working = (process_rom_measure1_message_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_measure1_message_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_measure1_answer_working  = (process_rom_measure1_answer_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_measure1_answer_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_measure1_ack_working     = (process_rom_measure1_ack_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_measure1_ack_working_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_process_rom_measure1_message_working = (process_rom_measure1_message_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_measure1_message_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_measure1_answer_working  = (process_rom_measure1_answer_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_measure1_answer_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_measure1_ack_working     = (process_rom_measure1_ack_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_measure1_ack_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_correctable_error_process_rom_measure2_message_working = (process_rom_measure2_message_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_measure2_message_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_measure2_answer_working  = (process_rom_measure2_answer_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_measure2_answer_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_measure2_ack_working     = (process_rom_measure2_ack_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_measure2_ack_working_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_process_rom_measure2_message_working = (process_rom_measure2_message_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_measure2_message_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_measure2_answer_working  = (process_rom_measure2_answer_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_measure2_answer_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_measure2_ack_working     = (process_rom_measure2_ack_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_measure2_ack_working_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_process_rom_measure2_message_working = (process_rom_measure2_message_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_measure2_message_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_measure2_answer_working  = (process_rom_measure2_answer_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_measure2_answer_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_measure2_ack_working     = (process_rom_measure2_ack_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_measure2_ack_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_correctable_error_process_rom_analysis_message_working = (process_rom_analysis_message_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_analysis_message_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_analysis_answer_working  = (process_rom_analysis_answer_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_analysis_answer_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_analysis_ack_working     = (process_rom_analysis_ack_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_analysis_ack_working_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_process_rom_analysis_message_working = (process_rom_analysis_message_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_analysis_message_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_analysis_answer_working  = (process_rom_analysis_answer_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_analysis_answer_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_analysis_ack_working     = (process_rom_analysis_ack_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_analysis_ack_working_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_process_rom_analysis_message_working = (process_rom_analysis_message_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_analysis_message_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_analysis_answer_working  = (process_rom_analysis_answer_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_analysis_answer_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_analysis_ack_working     = (process_rom_analysis_ack_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_analysis_ack_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_correctable_error_process_rom_control_message_working = (process_rom_control_message_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_control_message_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_control_answer_working  = (process_rom_control_answer_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_control_answer_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_control_ack_working     = (process_rom_control_ack_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_control_ack_working_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_process_rom_control_message_working = (process_rom_control_message_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_control_message_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_control_answer_working  = (process_rom_control_answer_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_control_answer_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_control_ack_working     = (process_rom_control_ack_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_control_ack_working_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_process_rom_control_message_working = (process_rom_control_message_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_control_message_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_control_answer_working  = (process_rom_control_answer_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_control_answer_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_control_ack_working     = (process_rom_control_ack_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_control_ack_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_correctable_error_process_rom_send_message_working = (process_rom_send_message_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_send_message_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_send_answer_working  = (process_rom_send_answer_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_send_answer_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_rom_send_ack_working     = (process_rom_send_ack_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_rom_send_ack_working_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_process_rom_send_message_working = (process_rom_send_message_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_send_message_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_send_answer_working  = (process_rom_send_answer_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_send_answer_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_rom_send_ack_working     = (process_rom_send_ack_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_rom_send_ack_working_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_process_rom_send_message_working = (process_rom_send_message_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_send_message_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_send_answer_working  = (process_rom_send_answer_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_send_answer_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_rom_send_ack_working     = (process_rom_send_ack_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_rom_send_ack_working_time)) : prob_silent_data_corruption_per_timestep);
+ 
+formula prob_correctable_error_process_rom_measure1_working 
+   = (process_rom_measure1_message_type = message ? prob_correctable_error_process_rom_measure1_message_working
+    : process_rom_measure1_message_type = answer  ? prob_correctable_error_process_rom_measure1_answer_working
+    :                                                  prob_correctable_error_process_rom_measure1_ack_working);
+formula prob_crash_process_rom_measure1_working 
+   = (process_rom_measure1_message_type = message ? prob_crash_process_rom_measure1_message_working
+    : process_rom_measure1_message_type = answer  ? prob_crash_process_rom_measure1_answer_working
+    :                                                  prob_crash_process_rom_measure1_ack_working);
+formula prob_silent_data_corruption_process_rom_measure1_working 
+   = (process_rom_measure1_message_type = message ? prob_silent_data_corruption_process_rom_measure1_message_working
+    : process_rom_measure1_message_type = answer  ? prob_silent_data_corruption_process_rom_measure1_answer_working
+    :                                                  prob_silent_data_corruption_process_rom_measure1_ack_working);
+formula prob_correctable_error_process_rom_measure2_working 
+   = (process_rom_measure2_message_type = message ? prob_correctable_error_process_rom_measure2_message_working
+    : process_rom_measure2_message_type = answer  ? prob_correctable_error_process_rom_measure2_answer_working
+    :                                                  prob_correctable_error_process_rom_measure2_ack_working);
+formula prob_crash_process_rom_measure2_working 
+   = (process_rom_measure2_message_type = message ? prob_crash_process_rom_measure2_message_working
+    : process_rom_measure2_message_type = answer  ? prob_crash_process_rom_measure2_answer_working
+    :                                                  prob_crash_process_rom_measure2_ack_working);
+formula prob_silent_data_corruption_process_rom_measure2_working 
+   = (process_rom_measure2_message_type = message ? prob_silent_data_corruption_process_rom_measure2_message_working
+    : process_rom_measure2_message_type = answer  ? prob_silent_data_corruption_process_rom_measure2_answer_working
+    :                                                  prob_silent_data_corruption_process_rom_measure2_ack_working);
+formula prob_correctable_error_process_rom_analysis_working 
+   = (process_rom_analysis_message_type = message ? prob_correctable_error_process_rom_analysis_message_working
+    : process_rom_analysis_message_type = answer  ? prob_correctable_error_process_rom_analysis_answer_working
+    :                                                  prob_correctable_error_process_rom_analysis_ack_working);
+formula prob_crash_process_rom_analysis_working 
+   = (process_rom_analysis_message_type = message ? prob_crash_process_rom_analysis_message_working
+    : process_rom_analysis_message_type = answer  ? prob_crash_process_rom_analysis_answer_working
+    :                                                  prob_crash_process_rom_analysis_ack_working);
+formula prob_silent_data_corruption_process_rom_analysis_working 
+   = (process_rom_analysis_message_type = message ? prob_silent_data_corruption_process_rom_analysis_message_working
+    : process_rom_analysis_message_type = answer  ? prob_silent_data_corruption_process_rom_analysis_answer_working
+    :                                                  prob_silent_data_corruption_process_rom_analysis_ack_working);
+formula prob_correctable_error_process_rom_control_working 
+   = (process_rom_control_message_type = message ? prob_correctable_error_process_rom_control_message_working
+    : process_rom_control_message_type = answer  ? prob_correctable_error_process_rom_control_answer_working
+    :                                                  prob_correctable_error_process_rom_control_ack_working);
+formula prob_crash_process_rom_control_working 
+   = (process_rom_control_message_type = message ? prob_crash_process_rom_control_message_working
+    : process_rom_control_message_type = answer  ? prob_crash_process_rom_control_answer_working
+    :                                                  prob_crash_process_rom_control_ack_working);
+formula prob_silent_data_corruption_process_rom_control_working 
+   = (process_rom_control_message_type = message ? prob_silent_data_corruption_process_rom_control_message_working
+    : process_rom_control_message_type = answer  ? prob_silent_data_corruption_process_rom_control_answer_working
+    :                                                  prob_silent_data_corruption_process_rom_control_ack_working);
+formula prob_correctable_error_process_rom_send_working 
+   = (process_rom_send_message_type = message ? prob_correctable_error_process_rom_send_message_working
+    : process_rom_send_message_type = answer  ? prob_correctable_error_process_rom_send_answer_working
+    :                                                  prob_correctable_error_process_rom_send_ack_working);
+formula prob_crash_process_rom_send_working 
+   = (process_rom_send_message_type = message ? prob_crash_process_rom_send_message_working
+    : process_rom_send_message_type = answer  ? prob_crash_process_rom_send_answer_working
+    :                                                  prob_crash_process_rom_send_ack_working);
+formula prob_silent_data_corruption_process_rom_send_working 
+   = (process_rom_send_message_type = message ? prob_silent_data_corruption_process_rom_send_message_working
+    : process_rom_send_message_type = answer  ? prob_silent_data_corruption_process_rom_send_answer_working
+    :                                                  prob_silent_data_corruption_process_rom_send_ack_working);
+
+
+// probabilities of finishing a time-consuming job within a step
+const double prob_transfer = (ipc_time_handling=fixed? 1 : 1/ipc_time);
+const double prob_repair = (repair_time_handling=fixed? 1 : 1/repair_time);
+const double prob_restart = (crash_time_handling=fixed? 1 : 1/crash_time);
+const double prob_process_rom_measure1_answer_working  = (process_rom_measure1_answer_working_time  = 0 ? 0 : (process_rom_measure1_answer_working_time_handling=fixed? 1 : 1/process_rom_measure1_answer_working_time));
+const double prob_process_rom_measure1_message_working = (process_rom_measure1_message_working_time = 0 ? 0 : (process_rom_measure1_message_working_time_handling=fixed? 1 : 1/process_rom_measure1_message_working_time));
+const double prob_process_rom_measure1_ack_working     = (process_rom_measure1_ack_working_time     = 0 ? 0 : (process_rom_measure1_ack_working_time_handling=fixed? 1 : 1/process_rom_measure1_ack_working_time));
+const double prob_process_rom_measure2_answer_working  = (process_rom_measure2_answer_working_time  = 0 ? 0 : (process_rom_measure2_answer_working_time_handling=fixed? 1 : 1/process_rom_measure2_answer_working_time));
+const double prob_process_rom_measure2_message_working = (process_rom_measure2_message_working_time = 0 ? 0 : (process_rom_measure2_message_working_time_handling=fixed? 1 : 1/process_rom_measure2_message_working_time));
+const double prob_process_rom_measure2_ack_working     = (process_rom_measure2_ack_working_time     = 0 ? 0 : (process_rom_measure2_ack_working_time_handling=fixed? 1 : 1/process_rom_measure2_ack_working_time));
+const double prob_process_rom_analysis_answer_working  = (process_rom_analysis_answer_working_time  = 0 ? 0 : (process_rom_analysis_answer_working_time_handling=fixed? 1 : 1/process_rom_analysis_answer_working_time));
+const double prob_process_rom_analysis_message_working = (process_rom_analysis_message_working_time = 0 ? 0 : (process_rom_analysis_message_working_time_handling=fixed? 1 : 1/process_rom_analysis_message_working_time));
+const double prob_process_rom_analysis_ack_working     = (process_rom_analysis_ack_working_time     = 0 ? 0 : (process_rom_analysis_ack_working_time_handling=fixed? 1 : 1/process_rom_analysis_ack_working_time));
+const double prob_process_rom_control_answer_working  = (process_rom_control_answer_working_time  = 0 ? 0 : (process_rom_control_answer_working_time_handling=fixed? 1 : 1/process_rom_control_answer_working_time));
+const double prob_process_rom_control_message_working = (process_rom_control_message_working_time = 0 ? 0 : (process_rom_control_message_working_time_handling=fixed? 1 : 1/process_rom_control_message_working_time));
+const double prob_process_rom_control_ack_working     = (process_rom_control_ack_working_time     = 0 ? 0 : (process_rom_control_ack_working_time_handling=fixed? 1 : 1/process_rom_control_ack_working_time));
+const double prob_process_rom_send_answer_working  = (process_rom_send_answer_working_time  = 0 ? 0 : (process_rom_send_answer_working_time_handling=fixed? 1 : 1/process_rom_send_answer_working_time));
+const double prob_process_rom_send_message_working = (process_rom_send_message_working_time = 0 ? 0 : (process_rom_send_message_working_time_handling=fixed? 1 : 1/process_rom_send_message_working_time));
+const double prob_process_rom_send_ack_working     = (process_rom_send_ack_working_time     = 0 ? 0 : (process_rom_send_ack_working_time_handling=fixed? 1 : 1/process_rom_send_ack_working_time));
+
+// Maybe answering a message needs more / less time then sending a message? We define a constant providently.
+const double prob_answer = prob_transfer;
+
+// probability of message_type = message / answer / ack
+const double prob_process_rom_analysis_call  = 0.98;
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NAMES
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// time handling names
+const int expected = -1;
+const int fixed = 1;
+
+
+// capability types
+const int server = -1;
+const int unset  = 0;
+const int client = 1;
+
+// other string definitions
+const int empty = -1;
+
+// message types
+const int none    = -1;
+const int answer  = 0;
+const int message = 1;
+const int ack     = 2;
+
+const int process_rom_measure1 = 1;
+const int process_rom_measure2 = 2;
+const int process_rom_analysis = 3;
+const int process_rom_control = 4;
+const int process_rom_send = 5;
+const int default_server = 0;
+
+// error types
+const int correct = 0;
+const int correctable_error = 1;
+const int crash = 2;
+
+// location names
+//client
+const int working           = 0;
+const int about_to_send     = 1;
+const int blocked_as_client = 2;
+const int MAX_CL_LOC = 2;
+
+//server
+//const int working               = 0; // redundant from client
+//const int about_to_send         = 1; // redundant from client
+//const int blocked_as_client     = 2; // redundant from client
+const int about_to_answer         = 3;
+const int blocked_as_server       = 4;
+const int about_to_ack            = 5;
+const int about_to_syscall_server = 6;
+const int MAX_SE_LOC = 6;
+
+// kernel
+const int inactive         = 0;
+const int sending          = 1;
+const int sent             = 2;
+const int receiving_answer = 3;
+const int answering        = 4;
+const int answered         = 5;
+const int receiving        = 6;
+const int sending_ack      = 7;
+const int ack_sent         = 8;
+const int wake_up          = 9;
+const int MAX_KERNEL_LOC = 9;
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MISC
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const int max_IPC_id = 12;
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// FORMULAS
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//formula rom_measure1_message_receive = rom_measure1_location = blocked_as_client & rom_measure1_wake_up;
+//formula rom_measure2_message_receive = rom_measure2_location = blocked_as_client & rom_measure2_wake_up;
+//formula rom_analysis_message_receive = rom_analysis_location = blocked_as_client & rom_analysis_wake_up;
+//formula rom_control_message_receive = rom_control_location = blocked_as_client & rom_control_wake_up;
+//formula rom_send_message_receive = rom_send_location = blocked_as_client & rom_send_wake_up;
+
+formula crashed = (final_crash);
+
+//The model ends in a trap-state eventually trap-state is determined by
+formula stop = (silent_data_corruption) | (final_crash);
+////////////////////////////////////////////////////////////////////////////////
+//
+//   IPC MODULES
+//
+////////////////////////////////////////////////////////////////////////////////
+// IPC gates do not have internal behavior, but only maintain data. Nevertheless, 
+// since we do not model kernel behavior explicit, sending time is modeled in the IPC gates. 
+// Therefor we use the double-location approach, i.e., we maintain a boolean variable ``<IPC>_send''
+// which is false on starting the message transfer and is set to true after expectably 
+// <time_sending> time steps. 
+//
+// IPC gate behavior depends on whether there are servers, clients or both of them connected. 
+// The IPC module differs depending on this.
+// Each IPC gate having clients connected manages a client buffer. Each client buffer element is
+// modeled by a single variable.
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				IPC Gate 9
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+
+
+  
+// We manage a pointer pointing on the current client buffer element
+formula IPC_9_client_buffer_pointer = (IPC_9_client_bufferElement_0 = empty ? 0 : 1);
+
+const bool IPC_9_hasServer = true;
+
+// TODO - which values can the server-cap and the client-buffer variables be assigned?
+const IPC_9_num_clients = 5; //1;
+const IPC_9_num_servers = 5; //5;
+
+module IPC_9
+// the clients buffer
+  IPC_9_client_bufferElement_0: [-1..IPC_9_num_clients] init empty;
+  
+// the client makes a syscall - add it to the buffer
+[rom_analysis_withCapID_9_as_client_SYSCALL] (!stop) & (IPC_9_client_buffer_pointer = 0) -> (IPC_9_client_bufferElement_0' = process_rom_analysis);
+  
+// message transfer - process1 sends message m to process2
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1]        (!stop) & (IPC_9_client_bufferElement_0 = process_rom_analysis) & (error_status_IPC_9 != correctable_error) & (IPC_9_hasServer)
+     -> true;
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1_update] (!stop) & (IPC_9_client_bufferElement_0 = process_rom_analysis) & (error_status_IPC_9 != correctable_error) & (IPC_9_hasServer)
+     ->   (IPC_9_client_bufferElement_0' = empty);
+ 
+
+ 
+// crashing
+[RESTART] true ->  (IPC_9_client_bufferElement_0' = empty);
+
+endmodule
+ 
+
+
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				IPC Gate 10
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+
+
+  
+// We manage a pointer pointing on the current client buffer element
+formula IPC_10_client_buffer_pointer = (IPC_10_client_bufferElement_0 = empty ? 0 : 1);
+
+const bool IPC_10_hasServer = true;
+
+// TODO - which values can the server-cap and the client-buffer variables be assigned?
+const IPC_10_num_clients = 5; //1;
+const IPC_10_num_servers = 5; //5;
+
+module IPC_10
+// the clients buffer
+  IPC_10_client_bufferElement_0: [-1..IPC_10_num_clients] init empty;
+  
+// the client makes a syscall - add it to the buffer
+[rom_analysis_withCapID_10_as_client_SYSCALL] (!stop) & (IPC_10_client_buffer_pointer = 0) -> (IPC_10_client_bufferElement_0' = process_rom_analysis);
+  
+// message transfer - process1 sends message m to process2
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2]        (!stop) & (IPC_10_client_bufferElement_0 = process_rom_analysis) & (error_status_IPC_10 != correctable_error) & (IPC_10_hasServer)
+     -> true;
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2_update] (!stop) & (IPC_10_client_bufferElement_0 = process_rom_analysis) & (error_status_IPC_10 != correctable_error) & (IPC_10_hasServer)
+     ->   (IPC_10_client_bufferElement_0' = empty);
+ 
+
+ 
+// crashing
+[RESTART] true ->  (IPC_10_client_bufferElement_0' = empty);
+
+endmodule
+ 
+
+
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				IPC Gate 11
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+
+
+  
+// We manage a pointer pointing on the current client buffer element
+formula IPC_11_client_buffer_pointer = (IPC_11_client_bufferElement_0 = empty ? 0 : 1);
+
+const bool IPC_11_hasServer = true;
+
+// TODO - which values can the server-cap and the client-buffer variables be assigned?
+const IPC_11_num_clients = 5; //1;
+const IPC_11_num_servers = 5; //5;
+
+module IPC_11
+// the clients buffer
+  IPC_11_client_bufferElement_0: [-1..IPC_11_num_clients] init empty;
+  
+// the client makes a syscall - add it to the buffer
+[rom_analysis_withCapID_11_as_client_SYSCALL] (!stop) & (IPC_11_client_buffer_pointer = 0) -> (IPC_11_client_bufferElement_0' = process_rom_analysis);
+  
+// message transfer - process1 sends message m to process2
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send]        (!stop) & (IPC_11_client_bufferElement_0 = process_rom_analysis) & (error_status_IPC_11 != correctable_error) & (IPC_11_hasServer)
+     -> true;
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send_update] (!stop) & (IPC_11_client_bufferElement_0 = process_rom_analysis) & (error_status_IPC_11 != correctable_error) & (IPC_11_hasServer)
+     ->   (IPC_11_client_bufferElement_0' = empty);
+ 
+
+ 
+// crashing
+[RESTART] true ->  (IPC_11_client_bufferElement_0' = empty);
+
+endmodule
+ 
+
+
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				IPC Gate 12
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+
+
+  
+// We manage a pointer pointing on the current client buffer element
+formula IPC_12_client_buffer_pointer = (IPC_12_client_bufferElement_0 = empty ? 0 : 1);
+
+const bool IPC_12_hasServer = true;
+
+// TODO - which values can the server-cap and the client-buffer variables be assigned?
+const IPC_12_num_clients = 5; //1;
+const IPC_12_num_servers = 5; //5;
+
+module IPC_12
+// the clients buffer
+  IPC_12_client_bufferElement_0: [-1..IPC_12_num_clients] init empty;
+  
+// the client makes a syscall - add it to the buffer
+[rom_control_withCapID_12_as_client_SYSCALL] (!stop) & (IPC_12_client_buffer_pointer = 0) -> (IPC_12_client_bufferElement_0' = process_rom_control);
+  
+// message transfer - process1 sends message m to process2
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis]        (!stop) & (IPC_12_client_bufferElement_0 = process_rom_control) & (error_status_IPC_12 != correctable_error) & (IPC_12_hasServer)
+     -> true;
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis_update] (!stop) & (IPC_12_client_bufferElement_0 = process_rom_control) & (error_status_IPC_12 != correctable_error) & (IPC_12_hasServer)
+     ->   (IPC_12_client_bufferElement_0' = empty);
+ 
+
+ 
+// crashing
+[RESTART] true ->  (IPC_12_client_bufferElement_0' = empty);
+
+endmodule
+ 
+
+
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				Processes rom_measure1
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+module process_rom_measure1
+  rom_measure1_location : [0..MAX_SE_LOC] init blocked_as_server;
+  process_rom_measure1_message_type : [-1..2] init none; // 0: answer, 1: message, 2: ack.
+
+
+// 'Working' transactions. Working time depends on the concrete message type that is the goal of the working step (ack, answer, message).
+// The conrete communication partner is chocen at the end of a wirking step.
+[rom_measure1_WORKING] (!stop) & (rom_measure1_location = working) & (process_rom_measure1_message_type = message) -> prob_process_rom_measure1_message_working: (rom_measure1_location' = about_to_send) & (process_rom_measure1_message_type' = none)   + (1-prob_process_rom_measure1_message_working) : true;
+[rom_measure1_WORKING] (!stop) & (rom_measure1_location = working) & (process_rom_measure1_message_type = answer)  -> prob_process_rom_measure1_answer_working:  (rom_measure1_location' = about_to_answer) & (process_rom_measure1_message_type' = none) + (1-prob_process_rom_measure1_answer_working) : true;
+[rom_measure1_WORKING] (!stop) & (rom_measure1_location = working) & (process_rom_measure1_message_type = ack)     -> prob_process_rom_measure1_ack_working:     (rom_measure1_location' = about_to_ack) & (process_rom_measure1_message_type' = none)    + (1-prob_process_rom_measure1_ack_working) : true;
+
+// System calls. 
+// We re-use the blocked_as_client location, since this does what we want 
+[rom_measure1_as_server_ack_SYSCALL] (!stop) & (rom_measure1_location = about_to_ack)    -> (rom_measure1_location' = blocked_as_client) ;
+
+[rom_measure1_withCapID_9_as_server_SYSCALL] (!stop) & (rom_measure1_location = about_to_answer) -> (rom_measure1_location' = blocked_as_server);
+[rom_measure1_withCapID_9_as_server_SYSCALL_only_receive] (!stop) & (rom_measure1_location = about_to_syscall_server) -> (rom_measure1_location' = blocked_as_server);
+
+// Wake up after message transfer
+
+[rom_measure1_WAKE_UP] (!stop) & (rom_measure1_location = blocked_as_client)
+  -> (rom_measure1_location' = working) & (process_rom_measure1_message_type' = answer);     
+
+
+
+[rom_measure1_WAKE_UP] (!stop) & (rom_measure1_location = blocked_as_server) -> (rom_measure1_location' = working) & (process_rom_measure1_message_type' = answer);
+ 
+
+   
+//restart
+[RESTART] true ->   
+   (rom_measure1_location' = blocked_as_server)
+   & (process_rom_measure1_message_type' = none)
+;
+endmodule
+
+
+
+
+//The kernel has to react on four types of syscalls: 
+// 1) a syscall of a client: the kernel transfer the message as soon as the resp. server is ready.
+// 2) a syscall of a server: The kernel transfers the ack of the server
+// 3) a syscall of a server: the kernel transfers the answer to the resp. process, and checks for transfering other messages to the receiving server 
+// 4) a syscall of a server: receive a new message without answering.
+// Different system call names are just for readabilty.
+// We need to store the transfer IPC id to use the same IPC gate during the whole transfer process.
+module KERNEL_cap_manager_process_rom_measure1
+ kernel_process_rom_measure1_loc: [0..MAX_KERNEL_LOC] init receiving;
+// preparing, sending and receiving via IPC-gate...
+ rom_measure1_sending_IPC_id : [0..max_IPC_id] init 0;
+ rom_measure1_receiving_IPC_id : [0..max_IPC_id] init 0;
+   
+// the server received a message from process..
+ rom_measure1_received_message_from: [-1..5] init -1;
+
+////////////////////////////////
+// reacting to a clients syscall
+////////////////////////////////
+// the syscall
+
+// transfer
+// it is also possible to send to 'nowhere', in this case we assume an answer to be received immediately
+
+// receiving an answer
+[ANSWER_from_rom_measure2_to_rom_measure1_update] (!stop) & (kernel_process_rom_measure1_loc = receiving_answer)-> (kernel_process_rom_measure1_loc' = wake_up);
+[ANSWER_from_rom_analysis_to_rom_measure1_update] (!stop) & (kernel_process_rom_measure1_loc = receiving_answer)-> (kernel_process_rom_measure1_loc' = wake_up);
+[ANSWER_from_rom_send_to_rom_measure1_update] (!stop) & (kernel_process_rom_measure1_loc = receiving_answer)-> (kernel_process_rom_measure1_loc' = wake_up);
+
+///////////////////////////////////////////////////
+// reacting to a servers answer-and-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_measure1_withCapID_9_as_server_SYSCALL] (!stop) & (error_status_IPC_9 != correctable_error) -> (kernel_process_rom_measure1_loc' = answering);
+ 
+// answer a message
+   [ANSWER_from_rom_measure1_to_rom_measure1]        (!stop) & (rom_measure1_received_message_from = process_rom_measure1) & (kernel_process_rom_measure1_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = answered);
+   [ANSWER_from_rom_measure1_to_rom_measure1_update] (!stop) & (rom_measure1_received_message_from = process_rom_measure1) & (kernel_process_rom_measure1_loc = answered) 
+     -> (rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = receiving);
+   [ANSWER_from_rom_measure1_to_rom_measure2]        (!stop) & (rom_measure1_received_message_from = process_rom_measure2) & (kernel_process_rom_measure1_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = answered);
+   [ANSWER_from_rom_measure1_to_rom_measure2_update] (!stop) & (rom_measure1_received_message_from = process_rom_measure2) & (kernel_process_rom_measure1_loc = answered) 
+     -> (rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = receiving);
+   [ANSWER_from_rom_measure1_to_rom_analysis]        (!stop) & (rom_measure1_received_message_from = process_rom_analysis) & (kernel_process_rom_measure1_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = answered);
+   [ANSWER_from_rom_measure1_to_rom_analysis_update] (!stop) & (rom_measure1_received_message_from = process_rom_analysis) & (kernel_process_rom_measure1_loc = answered) 
+     -> (rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = receiving);
+   [ANSWER_from_rom_measure1_to_rom_control]        (!stop) & (rom_measure1_received_message_from = process_rom_control) & (kernel_process_rom_measure1_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = answered);
+   [ANSWER_from_rom_measure1_to_rom_control_update] (!stop) & (rom_measure1_received_message_from = process_rom_control) & (kernel_process_rom_measure1_loc = answered) 
+     -> (rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = receiving);
+   [ANSWER_from_rom_measure1_to_rom_send]        (!stop) & (rom_measure1_received_message_from = process_rom_send) & (kernel_process_rom_measure1_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = answered);
+   [ANSWER_from_rom_measure1_to_rom_send_update] (!stop) & (rom_measure1_received_message_from = process_rom_send) & (kernel_process_rom_measure1_loc = answered) 
+     -> (rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = receiving);
+ 
+// receive a message
+// synchronize, to enable transfer only if the process is ready to receive. Time for message transfer is modeled in the client.
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1]        (!stop) & (rom_measure1_received_message_from = process_rom_analysis |  (rom_measure1_received_message_from = empty)) & (kernel_process_rom_measure1_loc = receiving) 
+        -> (rom_measure1_received_message_from' = process_rom_analysis);
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1_update] (!stop) & (rom_measure1_received_message_from = process_rom_analysis) & (kernel_process_rom_measure1_loc = receiving)    
+        -> (kernel_process_rom_measure1_loc' = wake_up);
+ 
+
+///////////////////////////////////////////////////
+// reacting to a servers ack syscall
+///////////////////////////////////////////////////
+// the syscall
+//[rom_measure1_withCapID_9_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_9 != correctable_error) -> (kernel_process_rom_measure1_loc' = sending_ack);
+[rom_measure1_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_9 != correctable_error) -> (kernel_process_rom_measure1_loc' = sending_ack);
+ 
+// send the ack
+   [ANSWER_from_rom_measure1_to_rom_measure1]        (!stop) & (rom_measure1_received_message_from = process_rom_measure1) & (kernel_process_rom_measure1_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = ack_sent);
+   [ANSWER_from_rom_measure1_to_rom_measure1_update] (!stop) & (rom_measure1_received_message_from = process_rom_measure1) & (kernel_process_rom_measure1_loc = ack_sent) 
+     ->(rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = wake_up);
+   [ANSWER_from_rom_measure1_to_rom_measure2]        (!stop) & (rom_measure1_received_message_from = process_rom_measure2) & (kernel_process_rom_measure1_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = ack_sent);
+   [ANSWER_from_rom_measure1_to_rom_measure2_update] (!stop) & (rom_measure1_received_message_from = process_rom_measure2) & (kernel_process_rom_measure1_loc = ack_sent) 
+     ->(rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = wake_up);
+   [ANSWER_from_rom_measure1_to_rom_analysis]        (!stop) & (rom_measure1_received_message_from = process_rom_analysis) & (kernel_process_rom_measure1_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = ack_sent);
+   [ANSWER_from_rom_measure1_to_rom_analysis_update] (!stop) & (rom_measure1_received_message_from = process_rom_analysis) & (kernel_process_rom_measure1_loc = ack_sent) 
+     ->(rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = wake_up);
+   [ANSWER_from_rom_measure1_to_rom_control]        (!stop) & (rom_measure1_received_message_from = process_rom_control) & (kernel_process_rom_measure1_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = ack_sent);
+   [ANSWER_from_rom_measure1_to_rom_control_update] (!stop) & (rom_measure1_received_message_from = process_rom_control) & (kernel_process_rom_measure1_loc = ack_sent) 
+     ->(rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = wake_up);
+   [ANSWER_from_rom_measure1_to_rom_send]        (!stop) & (rom_measure1_received_message_from = process_rom_send) & (kernel_process_rom_measure1_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure1_loc' = ack_sent);
+   [ANSWER_from_rom_measure1_to_rom_send_update] (!stop) & (rom_measure1_received_message_from = process_rom_send) & (kernel_process_rom_measure1_loc = ack_sent) 
+     ->(rom_measure1_received_message_from' = empty) & (kernel_process_rom_measure1_loc' = wake_up);
+
+
+///////////////////////////////////////////////////
+// reacting to a servers just-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_measure1_withCapID_9_as_server_SYSCALL_only_receive] (!stop) & (error_status_IPC_9 != correctable_error) -> (kernel_process_rom_measure1_loc' =receiving);
+
+// wake up (for all types of syscalls)
+[rom_measure1_WAKE_UP]   (!stop) & (kernel_process_rom_measure1_loc = wake_up) -> (kernel_process_rom_measure1_loc' = inactive);
+
+
+// RESTART
+[RESTART] true -> (kernel_process_rom_measure1_loc' = receiving)
+                & (rom_measure1_sending_IPC_id' = 0)
+                & (rom_measure1_receiving_IPC_id' = 0)
+                & (rom_measure1_received_message_from' = -1);
+
+endmodule
+
+ 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				Processes rom_measure2
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+module process_rom_measure2
+  rom_measure2_location : [0..MAX_SE_LOC] init blocked_as_server;
+  process_rom_measure2_message_type : [-1..2] init none; // 0: answer, 1: message, 2: ack.
+
+
+// 'Working' transactions. Working time depends on the concrete message type that is the goal of the working step (ack, answer, message).
+// The conrete communication partner is chocen at the end of a wirking step.
+[rom_measure2_WORKING] (!stop) & (rom_measure2_location = working) & (process_rom_measure2_message_type = message) -> prob_process_rom_measure2_message_working: (rom_measure2_location' = about_to_send) & (process_rom_measure2_message_type' = none)   + (1-prob_process_rom_measure2_message_working) : true;
+[rom_measure2_WORKING] (!stop) & (rom_measure2_location = working) & (process_rom_measure2_message_type = answer)  -> prob_process_rom_measure2_answer_working:  (rom_measure2_location' = about_to_answer) & (process_rom_measure2_message_type' = none) + (1-prob_process_rom_measure2_answer_working) : true;
+[rom_measure2_WORKING] (!stop) & (rom_measure2_location = working) & (process_rom_measure2_message_type = ack)     -> prob_process_rom_measure2_ack_working:     (rom_measure2_location' = about_to_ack) & (process_rom_measure2_message_type' = none)    + (1-prob_process_rom_measure2_ack_working) : true;
+
+// System calls. 
+// We re-use the blocked_as_client location, since this does what we want 
+[rom_measure2_as_server_ack_SYSCALL] (!stop) & (rom_measure2_location = about_to_ack)    -> (rom_measure2_location' = blocked_as_client) ;
+
+[rom_measure2_withCapID_10_as_server_SYSCALL] (!stop) & (rom_measure2_location = about_to_answer) -> (rom_measure2_location' = blocked_as_server);
+[rom_measure2_withCapID_10_as_server_SYSCALL_only_receive] (!stop) & (rom_measure2_location = about_to_syscall_server) -> (rom_measure2_location' = blocked_as_server);
+
+// Wake up after message transfer
+
+[rom_measure2_WAKE_UP] (!stop) & (rom_measure2_location = blocked_as_client)
+  -> (rom_measure2_location' = working) & (process_rom_measure2_message_type' = answer);     
+
+
+
+[rom_measure2_WAKE_UP] (!stop) & (rom_measure2_location = blocked_as_server) -> (rom_measure2_location' = working) & (process_rom_measure2_message_type' = answer);
+ 
+
+   
+//restart
+[RESTART] true ->   
+   (rom_measure2_location' = blocked_as_server)
+   & (process_rom_measure2_message_type' = none)
+;
+endmodule
+
+
+
+
+//The kernel has to react on four types of syscalls: 
+// 1) a syscall of a client: the kernel transfer the message as soon as the resp. server is ready.
+// 2) a syscall of a server: The kernel transfers the ack of the server
+// 3) a syscall of a server: the kernel transfers the answer to the resp. process, and checks for transfering other messages to the receiving server 
+// 4) a syscall of a server: receive a new message without answering.
+// Different system call names are just for readabilty.
+// We need to store the transfer IPC id to use the same IPC gate during the whole transfer process.
+module KERNEL_cap_manager_process_rom_measure2
+ kernel_process_rom_measure2_loc: [0..MAX_KERNEL_LOC] init receiving;
+// preparing, sending and receiving via IPC-gate...
+ rom_measure2_sending_IPC_id : [0..max_IPC_id] init 0;
+ rom_measure2_receiving_IPC_id : [0..max_IPC_id] init 0;
+   
+// the server received a message from process..
+ rom_measure2_received_message_from: [-1..5] init -1;
+
+////////////////////////////////
+// reacting to a clients syscall
+////////////////////////////////
+// the syscall
+
+// transfer
+// it is also possible to send to 'nowhere', in this case we assume an answer to be received immediately
+
+// receiving an answer
+[ANSWER_from_rom_measure1_to_rom_measure2_update] (!stop) & (kernel_process_rom_measure2_loc = receiving_answer)-> (kernel_process_rom_measure2_loc' = wake_up);
+[ANSWER_from_rom_analysis_to_rom_measure2_update] (!stop) & (kernel_process_rom_measure2_loc = receiving_answer)-> (kernel_process_rom_measure2_loc' = wake_up);
+[ANSWER_from_rom_send_to_rom_measure2_update] (!stop) & (kernel_process_rom_measure2_loc = receiving_answer)-> (kernel_process_rom_measure2_loc' = wake_up);
+
+///////////////////////////////////////////////////
+// reacting to a servers answer-and-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_measure2_withCapID_10_as_server_SYSCALL] (!stop) & (error_status_IPC_10 != correctable_error) -> (kernel_process_rom_measure2_loc' = answering);
+ 
+// answer a message
+   [ANSWER_from_rom_measure2_to_rom_measure1]        (!stop) & (rom_measure2_received_message_from = process_rom_measure1) & (kernel_process_rom_measure2_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = answered);
+   [ANSWER_from_rom_measure2_to_rom_measure1_update] (!stop) & (rom_measure2_received_message_from = process_rom_measure1) & (kernel_process_rom_measure2_loc = answered) 
+     -> (rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = receiving);
+   [ANSWER_from_rom_measure2_to_rom_measure2]        (!stop) & (rom_measure2_received_message_from = process_rom_measure2) & (kernel_process_rom_measure2_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = answered);
+   [ANSWER_from_rom_measure2_to_rom_measure2_update] (!stop) & (rom_measure2_received_message_from = process_rom_measure2) & (kernel_process_rom_measure2_loc = answered) 
+     -> (rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = receiving);
+   [ANSWER_from_rom_measure2_to_rom_analysis]        (!stop) & (rom_measure2_received_message_from = process_rom_analysis) & (kernel_process_rom_measure2_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = answered);
+   [ANSWER_from_rom_measure2_to_rom_analysis_update] (!stop) & (rom_measure2_received_message_from = process_rom_analysis) & (kernel_process_rom_measure2_loc = answered) 
+     -> (rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = receiving);
+   [ANSWER_from_rom_measure2_to_rom_control]        (!stop) & (rom_measure2_received_message_from = process_rom_control) & (kernel_process_rom_measure2_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = answered);
+   [ANSWER_from_rom_measure2_to_rom_control_update] (!stop) & (rom_measure2_received_message_from = process_rom_control) & (kernel_process_rom_measure2_loc = answered) 
+     -> (rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = receiving);
+   [ANSWER_from_rom_measure2_to_rom_send]        (!stop) & (rom_measure2_received_message_from = process_rom_send) & (kernel_process_rom_measure2_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = answered);
+   [ANSWER_from_rom_measure2_to_rom_send_update] (!stop) & (rom_measure2_received_message_from = process_rom_send) & (kernel_process_rom_measure2_loc = answered) 
+     -> (rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = receiving);
+ 
+// receive a message
+// synchronize, to enable transfer only if the process is ready to receive. Time for message transfer is modeled in the client.
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2]        (!stop) & (rom_measure2_received_message_from = process_rom_analysis |  (rom_measure2_received_message_from = empty)) & (kernel_process_rom_measure2_loc = receiving) 
+        -> (rom_measure2_received_message_from' = process_rom_analysis);
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2_update] (!stop) & (rom_measure2_received_message_from = process_rom_analysis) & (kernel_process_rom_measure2_loc = receiving)    
+        -> (kernel_process_rom_measure2_loc' = wake_up);
+ 
+
+///////////////////////////////////////////////////
+// reacting to a servers ack syscall
+///////////////////////////////////////////////////
+// the syscall
+//[rom_measure2_withCapID_10_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_10 != correctable_error) -> (kernel_process_rom_measure2_loc' = sending_ack);
+[rom_measure2_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_10 != correctable_error) -> (kernel_process_rom_measure2_loc' = sending_ack);
+ 
+// send the ack
+   [ANSWER_from_rom_measure2_to_rom_measure1]        (!stop) & (rom_measure2_received_message_from = process_rom_measure1) & (kernel_process_rom_measure2_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = ack_sent);
+   [ANSWER_from_rom_measure2_to_rom_measure1_update] (!stop) & (rom_measure2_received_message_from = process_rom_measure1) & (kernel_process_rom_measure2_loc = ack_sent) 
+     ->(rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = wake_up);
+   [ANSWER_from_rom_measure2_to_rom_measure2]        (!stop) & (rom_measure2_received_message_from = process_rom_measure2) & (kernel_process_rom_measure2_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = ack_sent);
+   [ANSWER_from_rom_measure2_to_rom_measure2_update] (!stop) & (rom_measure2_received_message_from = process_rom_measure2) & (kernel_process_rom_measure2_loc = ack_sent) 
+     ->(rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = wake_up);
+   [ANSWER_from_rom_measure2_to_rom_analysis]        (!stop) & (rom_measure2_received_message_from = process_rom_analysis) & (kernel_process_rom_measure2_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = ack_sent);
+   [ANSWER_from_rom_measure2_to_rom_analysis_update] (!stop) & (rom_measure2_received_message_from = process_rom_analysis) & (kernel_process_rom_measure2_loc = ack_sent) 
+     ->(rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = wake_up);
+   [ANSWER_from_rom_measure2_to_rom_control]        (!stop) & (rom_measure2_received_message_from = process_rom_control) & (kernel_process_rom_measure2_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = ack_sent);
+   [ANSWER_from_rom_measure2_to_rom_control_update] (!stop) & (rom_measure2_received_message_from = process_rom_control) & (kernel_process_rom_measure2_loc = ack_sent) 
+     ->(rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = wake_up);
+   [ANSWER_from_rom_measure2_to_rom_send]        (!stop) & (rom_measure2_received_message_from = process_rom_send) & (kernel_process_rom_measure2_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_measure2_loc' = ack_sent);
+   [ANSWER_from_rom_measure2_to_rom_send_update] (!stop) & (rom_measure2_received_message_from = process_rom_send) & (kernel_process_rom_measure2_loc = ack_sent) 
+     ->(rom_measure2_received_message_from' = empty) & (kernel_process_rom_measure2_loc' = wake_up);
+
+
+///////////////////////////////////////////////////
+// reacting to a servers just-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_measure2_withCapID_10_as_server_SYSCALL_only_receive] (!stop) & (error_status_IPC_10 != correctable_error) -> (kernel_process_rom_measure2_loc' =receiving);
+
+// wake up (for all types of syscalls)
+[rom_measure2_WAKE_UP]   (!stop) & (kernel_process_rom_measure2_loc = wake_up) -> (kernel_process_rom_measure2_loc' = inactive);
+
+
+// RESTART
+[RESTART] true -> (kernel_process_rom_measure2_loc' = receiving)
+                & (rom_measure2_sending_IPC_id' = 0)
+                & (rom_measure2_receiving_IPC_id' = 0)
+                & (rom_measure2_received_message_from' = -1);
+
+endmodule
+
+ 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				Processes rom_analysis
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+module process_rom_analysis
+  rom_analysis_location : [0..MAX_SE_LOC] init blocked_as_server;
+  process_rom_analysis_message_type : [-1..2] init none; // 0: answer, 1: message, 2: ack.
+  next_target_IPC_id : [0..max_IPC_id] init 0;
+
+
+// 'Working' transactions. Working time depends on the concrete message type that is the goal of the working step (ack, answer, message).
+// The conrete communication partner is chocen at the end of a wirking step.
+[rom_analysis_WORKING] (!stop) & (rom_analysis_location = working) & (process_rom_analysis_message_type = message) 
+     -> prob_process_rom_analysis_message_working * prob_message_from_rom_analysis_to_gate_9: (rom_analysis_location' = about_to_send) & (process_rom_analysis_message_type' = none) & (next_target_IPC_id' = 9) + prob_process_rom_analysis_message_working * prob_message_from_rom_analysis_to_gate_10: (rom_analysis_location' = about_to_send) & (process_rom_analysis_message_type' = none) & (next_target_IPC_id' = 10) + prob_process_rom_analysis_message_working * prob_message_from_rom_analysis_to_gate_11: (rom_analysis_location' = about_to_send) & (process_rom_analysis_message_type' = none) & (next_target_IPC_id' = 11)
+   + (1-prob_process_rom_analysis_message_working) : true;
+[rom_analysis_WORKING] (!stop) & (rom_analysis_location = working) & (process_rom_analysis_message_type = answer)  -> prob_process_rom_analysis_answer_working:  (rom_analysis_location' = about_to_answer) & (process_rom_analysis_message_type' = none) + (1-prob_process_rom_analysis_answer_working) : true;
+[rom_analysis_WORKING] (!stop) & (rom_analysis_location = working) & (process_rom_analysis_message_type = ack)     -> prob_process_rom_analysis_ack_working:     (rom_analysis_location' = about_to_ack) & (process_rom_analysis_message_type' = none)    + (1-prob_process_rom_analysis_ack_working) : true;
+
+// System calls. 
+[rom_analysis_withCapID_11_as_client_SYSCALL] (!stop) & (rom_analysis_location = about_to_send) & (next_target_IPC_id = 11) -> (rom_analysis_location' = blocked_as_client) & (next_target_IPC_id' = 0);     
+// We re-use the blocked_as_client location, since this does what we want 
+[rom_analysis_as_server_ack_SYSCALL] (!stop) & (rom_analysis_location = about_to_ack)    -> (rom_analysis_location' = blocked_as_client) ;
+
+[rom_analysis_withCapID_12_as_server_SYSCALL] (!stop) & (rom_analysis_location = about_to_answer) -> (rom_analysis_location' = blocked_as_server);
+[rom_analysis_withCapID_12_as_server_SYSCALL_only_receive] (!stop) & (rom_analysis_location = about_to_syscall_server) -> (rom_analysis_location' = blocked_as_server);
+[rom_analysis_withCapID_9_as_client_SYSCALL] (!stop) & (rom_analysis_location = about_to_send) & (next_target_IPC_id = 9) -> (rom_analysis_location' = blocked_as_client) & (next_target_IPC_id' = 0);     
+[rom_analysis_withCapID_10_as_client_SYSCALL] (!stop) & (rom_analysis_location = about_to_send) & (next_target_IPC_id = 10) -> (rom_analysis_location' = blocked_as_client) & (next_target_IPC_id' = 0);     
+
+// Wake up after message transfer
+
+[rom_analysis_WAKE_UP] (!stop) & (rom_analysis_location = blocked_as_client)
+  -> prob_process_rom_analysis_call:     (rom_analysis_location' = working) & (process_rom_analysis_message_type' = message)
+   + (1-prob_process_rom_analysis_call): (rom_analysis_location' = working) & (process_rom_analysis_message_type' = answer);
+
+
+
+ 
+[rom_analysis_WAKE_UP] (!stop) & (rom_analysis_location = blocked_as_server)
+     -> prob_process_rom_analysis_call : (rom_analysis_location' = working) & (process_rom_analysis_message_type' = message)
+   + (1-prob_process_rom_analysis_call): (rom_analysis_location' = working) & (process_rom_analysis_message_type' = answer);    
+
+   
+//restart
+[RESTART] true ->   
+   (rom_analysis_location' = blocked_as_server)
+   & (process_rom_analysis_message_type' = none)
+   & (next_target_IPC_id' = 0)
+;
+endmodule
+
+
+
+
+//The kernel has to react on four types of syscalls: 
+// 1) a syscall of a client: the kernel transfer the message as soon as the resp. server is ready.
+// 2) a syscall of a server: The kernel transfers the ack of the server
+// 3) a syscall of a server: the kernel transfers the answer to the resp. process, and checks for transfering other messages to the receiving server 
+// 4) a syscall of a server: receive a new message without answering.
+// Different system call names are just for readabilty.
+// We need to store the transfer IPC id to use the same IPC gate during the whole transfer process.
+module KERNEL_cap_manager_process_rom_analysis
+ kernel_process_rom_analysis_loc: [0..MAX_KERNEL_LOC] init receiving;
+// preparing, sending and receiving via IPC-gate...
+ rom_analysis_sending_IPC_id : [0..max_IPC_id] init 0;
+ rom_analysis_receiving_IPC_id : [0..max_IPC_id] init 0;
+   
+// the server received a message from process..
+ rom_analysis_received_message_from: [-1..5] init -1;
+
+////////////////////////////////
+// reacting to a clients syscall
+////////////////////////////////
+// the syscall
+[rom_analysis_withCapID_11_as_client_SYSCALL]     (!stop) & (rom_analysis_sending_IPC_id=0) -> (rom_analysis_sending_IPC_id'=11) & (kernel_process_rom_analysis_loc' = sending);
+[rom_analysis_withCapID_9_as_client_SYSCALL]     (!stop) & (rom_analysis_sending_IPC_id=0) -> (rom_analysis_sending_IPC_id'=9) & (kernel_process_rom_analysis_loc' = sending);
+[rom_analysis_withCapID_10_as_client_SYSCALL]     (!stop) & (rom_analysis_sending_IPC_id=0) -> (rom_analysis_sending_IPC_id'=10) & (kernel_process_rom_analysis_loc' = sending);
+
+// transfer
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1]        (!stop) & (rom_analysis_sending_IPC_id = 9) 
+                                                                                                   & (error_status_IPC_9 != correctable_error) 
+                                                                                                   & (kernel_process_rom_analysis_loc = sending)
+        -> (1-prob_transfer): true + prob_transfer: (kernel_process_rom_analysis_loc' = sent);
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1_update] (!stop) & (kernel_process_rom_analysis_loc = sent)
+        -> (rom_analysis_sending_IPC_id' = 0) & (kernel_process_rom_analysis_loc' = receiving_answer);
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2]        (!stop) & (rom_analysis_sending_IPC_id = 10) 
+                                                                                                   & (error_status_IPC_10 != correctable_error) 
+                                                                                                   & (kernel_process_rom_analysis_loc = sending)
+        -> (1-prob_transfer): true + prob_transfer: (kernel_process_rom_analysis_loc' = sent);
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2_update] (!stop) & (kernel_process_rom_analysis_loc = sent)
+        -> (rom_analysis_sending_IPC_id' = 0) & (kernel_process_rom_analysis_loc' = receiving_answer);
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send]        (!stop) & (rom_analysis_sending_IPC_id = 11) 
+                                                                                                   & (error_status_IPC_11 != correctable_error) 
+                                                                                                   & (kernel_process_rom_analysis_loc = sending)
+        -> (1-prob_transfer): true + prob_transfer: (kernel_process_rom_analysis_loc' = sent);
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send_update] (!stop) & (kernel_process_rom_analysis_loc = sent)
+        -> (rom_analysis_sending_IPC_id' = 0) & (kernel_process_rom_analysis_loc' = receiving_answer);
+// it is also possible to send to 'nowhere', in this case we assume an answer to be received immediately
+
+// receiving an answer
+[ANSWER_from_rom_measure1_to_rom_analysis_update] (!stop) & (kernel_process_rom_analysis_loc = receiving_answer)-> (kernel_process_rom_analysis_loc' = wake_up);
+[ANSWER_from_rom_measure2_to_rom_analysis_update] (!stop) & (kernel_process_rom_analysis_loc = receiving_answer)-> (kernel_process_rom_analysis_loc' = wake_up);
+[ANSWER_from_rom_send_to_rom_analysis_update] (!stop) & (kernel_process_rom_analysis_loc = receiving_answer)-> (kernel_process_rom_analysis_loc' = wake_up);
+
+///////////////////////////////////////////////////
+// reacting to a servers answer-and-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_analysis_withCapID_12_as_server_SYSCALL] (!stop) & (error_status_IPC_12 != correctable_error) -> (kernel_process_rom_analysis_loc' = answering);
+ 
+// answer a message
+   [ANSWER_from_rom_analysis_to_rom_measure1]        (!stop) & (rom_analysis_received_message_from = process_rom_measure1) & (kernel_process_rom_analysis_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = answered);
+   [ANSWER_from_rom_analysis_to_rom_measure1_update] (!stop) & (rom_analysis_received_message_from = process_rom_measure1) & (kernel_process_rom_analysis_loc = answered) 
+     -> (rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = receiving);
+   [ANSWER_from_rom_analysis_to_rom_measure2]        (!stop) & (rom_analysis_received_message_from = process_rom_measure2) & (kernel_process_rom_analysis_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = answered);
+   [ANSWER_from_rom_analysis_to_rom_measure2_update] (!stop) & (rom_analysis_received_message_from = process_rom_measure2) & (kernel_process_rom_analysis_loc = answered) 
+     -> (rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = receiving);
+   [ANSWER_from_rom_analysis_to_rom_analysis]        (!stop) & (rom_analysis_received_message_from = process_rom_analysis) & (kernel_process_rom_analysis_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = answered);
+   [ANSWER_from_rom_analysis_to_rom_analysis_update] (!stop) & (rom_analysis_received_message_from = process_rom_analysis) & (kernel_process_rom_analysis_loc = answered) 
+     -> (rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = receiving);
+   [ANSWER_from_rom_analysis_to_rom_control]        (!stop) & (rom_analysis_received_message_from = process_rom_control) & (kernel_process_rom_analysis_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = answered);
+   [ANSWER_from_rom_analysis_to_rom_control_update] (!stop) & (rom_analysis_received_message_from = process_rom_control) & (kernel_process_rom_analysis_loc = answered) 
+     -> (rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = receiving);
+   [ANSWER_from_rom_analysis_to_rom_send]        (!stop) & (rom_analysis_received_message_from = process_rom_send) & (kernel_process_rom_analysis_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = answered);
+   [ANSWER_from_rom_analysis_to_rom_send_update] (!stop) & (rom_analysis_received_message_from = process_rom_send) & (kernel_process_rom_analysis_loc = answered) 
+     -> (rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = receiving);
+ 
+// receive a message
+// synchronize, to enable transfer only if the process is ready to receive. Time for message transfer is modeled in the client.
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis]        (!stop) & (rom_analysis_received_message_from = process_rom_control |  (rom_analysis_received_message_from = empty)) & (kernel_process_rom_analysis_loc = receiving) 
+        -> (rom_analysis_received_message_from' = process_rom_control);
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis_update] (!stop) & (rom_analysis_received_message_from = process_rom_control) & (kernel_process_rom_analysis_loc = receiving)    
+        -> (kernel_process_rom_analysis_loc' = wake_up);
+ 
+
+///////////////////////////////////////////////////
+// reacting to a servers ack syscall
+///////////////////////////////////////////////////
+// the syscall
+//[rom_analysis_withCapID_12_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_12 != correctable_error) -> (kernel_process_rom_analysis_loc' = sending_ack);
+[rom_analysis_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_12 != correctable_error) -> (kernel_process_rom_analysis_loc' = sending_ack);
+ 
+// send the ack
+   [ANSWER_from_rom_analysis_to_rom_measure1]        (!stop) & (rom_analysis_received_message_from = process_rom_measure1) & (kernel_process_rom_analysis_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = ack_sent);
+   [ANSWER_from_rom_analysis_to_rom_measure1_update] (!stop) & (rom_analysis_received_message_from = process_rom_measure1) & (kernel_process_rom_analysis_loc = ack_sent) 
+     ->(rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = wake_up);
+   [ANSWER_from_rom_analysis_to_rom_measure2]        (!stop) & (rom_analysis_received_message_from = process_rom_measure2) & (kernel_process_rom_analysis_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = ack_sent);
+   [ANSWER_from_rom_analysis_to_rom_measure2_update] (!stop) & (rom_analysis_received_message_from = process_rom_measure2) & (kernel_process_rom_analysis_loc = ack_sent) 
+     ->(rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = wake_up);
+   [ANSWER_from_rom_analysis_to_rom_analysis]        (!stop) & (rom_analysis_received_message_from = process_rom_analysis) & (kernel_process_rom_analysis_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = ack_sent);
+   [ANSWER_from_rom_analysis_to_rom_analysis_update] (!stop) & (rom_analysis_received_message_from = process_rom_analysis) & (kernel_process_rom_analysis_loc = ack_sent) 
+     ->(rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = wake_up);
+   [ANSWER_from_rom_analysis_to_rom_control]        (!stop) & (rom_analysis_received_message_from = process_rom_control) & (kernel_process_rom_analysis_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = ack_sent);
+   [ANSWER_from_rom_analysis_to_rom_control_update] (!stop) & (rom_analysis_received_message_from = process_rom_control) & (kernel_process_rom_analysis_loc = ack_sent) 
+     ->(rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = wake_up);
+   [ANSWER_from_rom_analysis_to_rom_send]        (!stop) & (rom_analysis_received_message_from = process_rom_send) & (kernel_process_rom_analysis_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_analysis_loc' = ack_sent);
+   [ANSWER_from_rom_analysis_to_rom_send_update] (!stop) & (rom_analysis_received_message_from = process_rom_send) & (kernel_process_rom_analysis_loc = ack_sent) 
+     ->(rom_analysis_received_message_from' = empty) & (kernel_process_rom_analysis_loc' = wake_up);
+
+
+///////////////////////////////////////////////////
+// reacting to a servers just-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_analysis_withCapID_12_as_server_SYSCALL_only_receive] (!stop) & (error_status_IPC_12 != correctable_error) -> (kernel_process_rom_analysis_loc' =receiving);
+
+// wake up (for all types of syscalls)
+[rom_analysis_WAKE_UP]   (!stop) & (kernel_process_rom_analysis_loc = wake_up) -> (kernel_process_rom_analysis_loc' = inactive);
+
+
+// RESTART
+[RESTART] true -> (kernel_process_rom_analysis_loc' = receiving)
+                & (rom_analysis_sending_IPC_id' = 0)
+                & (rom_analysis_receiving_IPC_id' = 0)
+                & (rom_analysis_received_message_from' = -1);
+
+endmodule
+
+ 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				Processes rom_control
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+// Process rom_control has no IPC gate for receiving messages. We thus omit server states.
+
+module process_rom_control
+  rom_control_location : [0..MAX_CL_LOC] init working;
+  process_rom_control_message_type : [-1..2] init message; // -1: none, 0: answer, 1: message, 2: ack
+
+
+// 'Working' transactions. Working time depends on the concrete message type that is the goal of the working step (ack, answer, message).
+// The conrete communication partner is chocen at the end of a wirking step.
+[rom_control_WORKING] (!stop) & (rom_control_location = working) & (process_rom_control_message_type = message) -> prob_process_rom_control_message_working: (rom_control_location' = about_to_send) & (process_rom_control_message_type' = none)   + (1-prob_process_rom_control_message_working) : true;
+
+// System calls. 
+[rom_control_withCapID_12_as_client_SYSCALL] (!stop) & (rom_control_location = about_to_send)   -> (rom_control_location' = blocked_as_client) ;
+
+// Wake up after message transfer
+[rom_control_WAKE_UP] (!stop) & (rom_control_location = blocked_as_client) -> (rom_control_location' = working) & (process_rom_control_message_type' = message);
+
+
+
+
+   
+//restart
+[RESTART] true ->   
+    (rom_control_location' = working)
+  & (process_rom_control_message_type' = message)
+;
+endmodule
+
+
+
+
+//The kernel has to react on four types of syscalls: 
+// 1) a syscall of a client: the kernel transfer the message as soon as the resp. server is ready.
+// 2) a syscall of a server: The kernel transfers the ack of the server
+// 3) a syscall of a server: the kernel transfers the answer to the resp. process, and checks for transfering other messages to the receiving server 
+// 4) a syscall of a server: receive a new message without answering.
+// Different system call names are just for readabilty.
+// We need to store the transfer IPC id to use the same IPC gate during the whole transfer process.
+module KERNEL_cap_manager_process_rom_control
+ kernel_process_rom_control_loc: [0..MAX_KERNEL_LOC] init inactive;
+// preparing, sending and receiving via IPC-gate...
+ rom_control_sending_IPC_id : [0..max_IPC_id] init 0;
+ rom_control_receiving_IPC_id : [0..max_IPC_id] init 0;
+   
+// the server received a message from process..
+ rom_control_received_message_from: [-1..5] init -1;
+
+////////////////////////////////
+// reacting to a clients syscall
+////////////////////////////////
+// the syscall
+[rom_control_withCapID_12_as_client_SYSCALL]     (!stop) & (rom_control_sending_IPC_id=0) -> (rom_control_sending_IPC_id'=12) & (kernel_process_rom_control_loc' = sending);
+
+// transfer
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis]        (!stop) & (rom_control_sending_IPC_id = 12) 
+                                                                                                   & (error_status_IPC_12 != correctable_error) 
+                                                                                                   & (kernel_process_rom_control_loc = sending)
+        -> (1-prob_transfer): true + prob_transfer: (kernel_process_rom_control_loc' = sent);
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis_update] (!stop) & (kernel_process_rom_control_loc = sent)
+        -> (rom_control_sending_IPC_id' = 0) & (kernel_process_rom_control_loc' = receiving_answer);
+// it is also possible to send to 'nowhere', in this case we assume an answer to be received immediately
+
+// receiving an answer
+[ANSWER_from_rom_measure1_to_rom_control_update] (!stop) & (kernel_process_rom_control_loc = receiving_answer)-> (kernel_process_rom_control_loc' = wake_up);
+[ANSWER_from_rom_measure2_to_rom_control_update] (!stop) & (kernel_process_rom_control_loc = receiving_answer)-> (kernel_process_rom_control_loc' = wake_up);
+[ANSWER_from_rom_analysis_to_rom_control_update] (!stop) & (kernel_process_rom_control_loc = receiving_answer)-> (kernel_process_rom_control_loc' = wake_up);
+[ANSWER_from_rom_send_to_rom_control_update] (!stop) & (kernel_process_rom_control_loc = receiving_answer)-> (kernel_process_rom_control_loc' = wake_up);
+
+///////////////////////////////////////////////////
+// reacting to a servers answer-and-receive syscall
+///////////////////////////////////////////////////
+
+// wake up (for all types of syscalls)
+[rom_control_WAKE_UP]   (!stop) & (kernel_process_rom_control_loc = wake_up) -> (kernel_process_rom_control_loc' = inactive);
+
+
+// RESTART
+[RESTART] true -> (kernel_process_rom_control_loc' = inactive)
+                & (rom_control_sending_IPC_id' = 0)
+                & (rom_control_receiving_IPC_id' = 0)
+                & (rom_control_received_message_from' = -1);
+
+endmodule
+
+ 
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				Processes rom_send
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+
+
+
+module process_rom_send
+  rom_send_location : [0..MAX_SE_LOC] init blocked_as_server;
+  process_rom_send_message_type : [-1..2] init none; // 0: answer, 1: message, 2: ack.
+
+
+// 'Working' transactions. Working time depends on the concrete message type that is the goal of the working step (ack, answer, message).
+// The conrete communication partner is chocen at the end of a wirking step.
+[rom_send_WORKING] (!stop) & (rom_send_location = working) & (process_rom_send_message_type = message) -> prob_process_rom_send_message_working: (rom_send_location' = about_to_send) & (process_rom_send_message_type' = none)   + (1-prob_process_rom_send_message_working) : true;
+[rom_send_WORKING] (!stop) & (rom_send_location = working) & (process_rom_send_message_type = answer)  -> prob_process_rom_send_answer_working:  (rom_send_location' = about_to_answer) & (process_rom_send_message_type' = none) + (1-prob_process_rom_send_answer_working) : true;
+[rom_send_WORKING] (!stop) & (rom_send_location = working) & (process_rom_send_message_type = ack)     -> prob_process_rom_send_ack_working:     (rom_send_location' = about_to_ack) & (process_rom_send_message_type' = none)    + (1-prob_process_rom_send_ack_working) : true;
+
+// System calls. 
+// We re-use the blocked_as_client location, since this does what we want 
+[rom_send_as_server_ack_SYSCALL] (!stop) & (rom_send_location = about_to_ack)    -> (rom_send_location' = blocked_as_client) ;
+
+[rom_send_withCapID_11_as_server_SYSCALL] (!stop) & (rom_send_location = about_to_answer) -> (rom_send_location' = blocked_as_server);
+[rom_send_withCapID_11_as_server_SYSCALL_only_receive] (!stop) & (rom_send_location = about_to_syscall_server) -> (rom_send_location' = blocked_as_server);
+
+// Wake up after message transfer
+
+[rom_send_WAKE_UP] (!stop) & (rom_send_location = blocked_as_client)
+  -> (rom_send_location' = working) & (process_rom_send_message_type' = answer);     
+
+
+
+[rom_send_WAKE_UP] (!stop) & (rom_send_location = blocked_as_server) -> (rom_send_location' = working) & (process_rom_send_message_type' = answer);
+ 
+
+   
+//restart
+[RESTART] true ->   
+   (rom_send_location' = blocked_as_server)
+   & (process_rom_send_message_type' = none)
+;
+endmodule
+
+
+
+
+//The kernel has to react on four types of syscalls: 
+// 1) a syscall of a client: the kernel transfer the message as soon as the resp. server is ready.
+// 2) a syscall of a server: The kernel transfers the ack of the server
+// 3) a syscall of a server: the kernel transfers the answer to the resp. process, and checks for transfering other messages to the receiving server 
+// 4) a syscall of a server: receive a new message without answering.
+// Different system call names are just for readabilty.
+// We need to store the transfer IPC id to use the same IPC gate during the whole transfer process.
+module KERNEL_cap_manager_process_rom_send
+ kernel_process_rom_send_loc: [0..MAX_KERNEL_LOC] init receiving;
+// preparing, sending and receiving via IPC-gate...
+ rom_send_sending_IPC_id : [0..max_IPC_id] init 0;
+ rom_send_receiving_IPC_id : [0..max_IPC_id] init 0;
+   
+// the server received a message from process..
+ rom_send_received_message_from: [-1..5] init -1;
+
+////////////////////////////////
+// reacting to a clients syscall
+////////////////////////////////
+// the syscall
+
+// transfer
+// it is also possible to send to 'nowhere', in this case we assume an answer to be received immediately
+
+// receiving an answer
+[ANSWER_from_rom_measure1_to_rom_send_update] (!stop) & (kernel_process_rom_send_loc = receiving_answer)-> (kernel_process_rom_send_loc' = wake_up);
+[ANSWER_from_rom_measure2_to_rom_send_update] (!stop) & (kernel_process_rom_send_loc = receiving_answer)-> (kernel_process_rom_send_loc' = wake_up);
+[ANSWER_from_rom_analysis_to_rom_send_update] (!stop) & (kernel_process_rom_send_loc = receiving_answer)-> (kernel_process_rom_send_loc' = wake_up);
+
+///////////////////////////////////////////////////
+// reacting to a servers answer-and-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_send_withCapID_11_as_server_SYSCALL] (!stop) & (error_status_IPC_11 != correctable_error) -> (kernel_process_rom_send_loc' = answering);
+ 
+// answer a message
+   [ANSWER_from_rom_send_to_rom_measure1]        (!stop) & (rom_send_received_message_from = process_rom_measure1) & (kernel_process_rom_send_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = answered);
+   [ANSWER_from_rom_send_to_rom_measure1_update] (!stop) & (rom_send_received_message_from = process_rom_measure1) & (kernel_process_rom_send_loc = answered) 
+     -> (rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = receiving);
+   [ANSWER_from_rom_send_to_rom_measure2]        (!stop) & (rom_send_received_message_from = process_rom_measure2) & (kernel_process_rom_send_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = answered);
+   [ANSWER_from_rom_send_to_rom_measure2_update] (!stop) & (rom_send_received_message_from = process_rom_measure2) & (kernel_process_rom_send_loc = answered) 
+     -> (rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = receiving);
+   [ANSWER_from_rom_send_to_rom_analysis]        (!stop) & (rom_send_received_message_from = process_rom_analysis) & (kernel_process_rom_send_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = answered);
+   [ANSWER_from_rom_send_to_rom_analysis_update] (!stop) & (rom_send_received_message_from = process_rom_analysis) & (kernel_process_rom_send_loc = answered) 
+     -> (rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = receiving);
+   [ANSWER_from_rom_send_to_rom_control]        (!stop) & (rom_send_received_message_from = process_rom_control) & (kernel_process_rom_send_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = answered);
+   [ANSWER_from_rom_send_to_rom_control_update] (!stop) & (rom_send_received_message_from = process_rom_control) & (kernel_process_rom_send_loc = answered) 
+     -> (rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = receiving);
+   [ANSWER_from_rom_send_to_rom_send]        (!stop) & (rom_send_received_message_from = process_rom_send) & (kernel_process_rom_send_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = answered);
+   [ANSWER_from_rom_send_to_rom_send_update] (!stop) & (rom_send_received_message_from = process_rom_send) & (kernel_process_rom_send_loc = answered) 
+     -> (rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = receiving);
+ 
+// receive a message
+// synchronize, to enable transfer only if the process is ready to receive. Time for message transfer is modeled in the client.
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send]        (!stop) & (rom_send_received_message_from = process_rom_analysis |  (rom_send_received_message_from = empty)) & (kernel_process_rom_send_loc = receiving) 
+        -> (rom_send_received_message_from' = process_rom_analysis);
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send_update] (!stop) & (rom_send_received_message_from = process_rom_analysis) & (kernel_process_rom_send_loc = receiving)    
+        -> (kernel_process_rom_send_loc' = wake_up);
+ 
+
+///////////////////////////////////////////////////
+// reacting to a servers ack syscall
+///////////////////////////////////////////////////
+// the syscall
+//[rom_send_withCapID_11_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_11 != correctable_error) -> (kernel_process_rom_send_loc' = sending_ack);
+[rom_send_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_11 != correctable_error) -> (kernel_process_rom_send_loc' = sending_ack);
+ 
+// send the ack
+   [ANSWER_from_rom_send_to_rom_measure1]        (!stop) & (rom_send_received_message_from = process_rom_measure1) & (kernel_process_rom_send_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = ack_sent);
+   [ANSWER_from_rom_send_to_rom_measure1_update] (!stop) & (rom_send_received_message_from = process_rom_measure1) & (kernel_process_rom_send_loc = ack_sent) 
+     ->(rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = wake_up);
+   [ANSWER_from_rom_send_to_rom_measure2]        (!stop) & (rom_send_received_message_from = process_rom_measure2) & (kernel_process_rom_send_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = ack_sent);
+   [ANSWER_from_rom_send_to_rom_measure2_update] (!stop) & (rom_send_received_message_from = process_rom_measure2) & (kernel_process_rom_send_loc = ack_sent) 
+     ->(rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = wake_up);
+   [ANSWER_from_rom_send_to_rom_analysis]        (!stop) & (rom_send_received_message_from = process_rom_analysis) & (kernel_process_rom_send_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = ack_sent);
+   [ANSWER_from_rom_send_to_rom_analysis_update] (!stop) & (rom_send_received_message_from = process_rom_analysis) & (kernel_process_rom_send_loc = ack_sent) 
+     ->(rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = wake_up);
+   [ANSWER_from_rom_send_to_rom_control]        (!stop) & (rom_send_received_message_from = process_rom_control) & (kernel_process_rom_send_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = ack_sent);
+   [ANSWER_from_rom_send_to_rom_control_update] (!stop) & (rom_send_received_message_from = process_rom_control) & (kernel_process_rom_send_loc = ack_sent) 
+     ->(rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = wake_up);
+   [ANSWER_from_rom_send_to_rom_send]        (!stop) & (rom_send_received_message_from = process_rom_send) & (kernel_process_rom_send_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_rom_send_loc' = ack_sent);
+   [ANSWER_from_rom_send_to_rom_send_update] (!stop) & (rom_send_received_message_from = process_rom_send) & (kernel_process_rom_send_loc = ack_sent) 
+     ->(rom_send_received_message_from' = empty) & (kernel_process_rom_send_loc' = wake_up);
+
+
+///////////////////////////////////////////////////
+// reacting to a servers just-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+[rom_send_withCapID_11_as_server_SYSCALL_only_receive] (!stop) & (error_status_IPC_11 != correctable_error) -> (kernel_process_rom_send_loc' =receiving);
+
+// wake up (for all types of syscalls)
+[rom_send_WAKE_UP]   (!stop) & (kernel_process_rom_send_loc = wake_up) -> (kernel_process_rom_send_loc' = inactive);
+
+
+// RESTART
+[RESTART] true -> (kernel_process_rom_send_loc' = receiving)
+                & (rom_send_sending_IPC_id' = 0)
+                & (rom_send_receiving_IPC_id' = 0)
+                & (rom_send_received_message_from' = -1);
+
+endmodule
+
+ 
+/////////////////////////////////////////////////////////////////
+// 
+// ERROR MODULE
+// 
+/////////////////////////////////////////////////////////////////
+
+
+
+module error
+silent_data_corruption : bool init false;
+error_status_IPC_9 : [0..2] init correct;
+error_status_IPC_10 : [0..2] init correct;
+error_status_IPC_11 : [0..2] init correct;
+error_status_IPC_12 : [0..2] init correct;
+final_crash : bool init false;
+
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1] (!stop) & (error_status_IPC_9 != crash) -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2] (!stop) & (error_status_IPC_10 != crash) -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send] (!stop) & (error_status_IPC_11 != crash) -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis] (!stop) & (error_status_IPC_12 != crash) -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+
+
+[rom_measure1_WORKING] (!stop)  -> 
+     (1 - prob_silent_data_corruption_process_rom_measure1_working - ((1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working)+(1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working))): true
+        + prob_silent_data_corruption_process_rom_measure1_working: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_correctable_error_process_rom_measure1_working) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure1_working)*(prob_crash_process_rom_measure1_working) : (error_status_IPC_12' = crash)
+;
+
+[ANSWER_from_rom_measure1_to_rom_measure2] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_measure1_to_rom_analysis] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_measure1_to_rom_control] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_measure1_to_rom_send] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[rom_measure2_WORKING] (!stop)  -> 
+     (1 - prob_silent_data_corruption_process_rom_measure2_working - ((1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working)+(1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working))): true
+        + prob_silent_data_corruption_process_rom_measure2_working: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_correctable_error_process_rom_measure2_working) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_measure2_working)*(prob_crash_process_rom_measure2_working) : (error_status_IPC_12' = crash)
+;
+
+[ANSWER_from_rom_measure2_to_rom_measure1] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_measure2_to_rom_analysis] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_measure2_to_rom_control] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_measure2_to_rom_send] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[rom_analysis_WORKING] (!stop)  -> 
+     (1 - prob_silent_data_corruption_process_rom_analysis_working - ((1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working)+(1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working))): true
+        + prob_silent_data_corruption_process_rom_analysis_working: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_correctable_error_process_rom_analysis_working) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_analysis_working)*(prob_crash_process_rom_analysis_working) : (error_status_IPC_12' = crash)
+;
+
+[ANSWER_from_rom_analysis_to_rom_measure1] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_analysis_to_rom_measure2] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_analysis_to_rom_control] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_analysis_to_rom_send] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[rom_control_WORKING] (!stop)  -> 
+     (1 - prob_silent_data_corruption_process_rom_control_working - ((1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working)+(1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working))): true
+        + prob_silent_data_corruption_process_rom_control_working: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_correctable_error_process_rom_control_working) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_control_working)*(prob_crash_process_rom_control_working) : (error_status_IPC_12' = crash)
+;
+
+[rom_send_WORKING] (!stop)  -> 
+     (1 - prob_silent_data_corruption_process_rom_send_working - ((1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working)+(1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working))): true
+        + prob_silent_data_corruption_process_rom_send_working: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_correctable_error_process_rom_send_working) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_process_rom_send_working)*(prob_crash_process_rom_send_working) : (error_status_IPC_12' = crash)
+;
+
+[ANSWER_from_rom_send_to_rom_measure1] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_send_to_rom_measure2] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_send_to_rom_analysis] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+[ANSWER_from_rom_send_to_rom_control] (!stop)  -> 
+     (1 - prob_silent_data_corruption_transfer - ((1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer)+(1-prob_silent_data_corruption_transfer)*(prob_crash_transfer))): true
+        + prob_silent_data_corruption_transfer: (silent_data_corruption' = true)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_9' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_9' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_10' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_10' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_11' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_11' = crash)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_correctable_error_transfer) : (error_status_IPC_12' = correctable_error)
+        +  (1-prob_silent_data_corruption_transfer)*(prob_crash_transfer) : (error_status_IPC_12' = crash)
+;
+
+// repair
+// TODO needs to be implemented
+// repair a detectable error in some IPC gate
+//[repair_IPC_9] (!stop) & (correctable_error_IPC_9) & (is_used_IPC_9) 
+//    -> TODO;
+//[repair_IPC_10] (!stop) & (correctable_error_IPC_10) & (is_used_IPC_10) 
+//    -> TODO;
+//[repair_IPC_11] (!stop) & (correctable_error_IPC_11) & (is_used_IPC_11) 
+//    -> TODO;
+//[repair_IPC_12] (!stop) & (correctable_error_IPC_12) & (is_used_IPC_12) 
+//    -> TODO;
+
+[RESTART] true -> (silent_data_corruption' = false)
+                   & (error_status_IPC_9' =  correct)
+                   & (error_status_IPC_10' =  correct)
+                   & (error_status_IPC_11' =  correct)
+                   & (error_status_IPC_12' =  correct)
+                   & (final_crash' = false);
+
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1] (!stop) & (error_status_IPC_9 = crash) & (!final_crash)
+    -> (final_crash' = true);
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2] (!stop) & (error_status_IPC_10 = crash) & (!final_crash)
+    -> (final_crash' = true);
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send] (!stop) & (error_status_IPC_11 = crash) & (!final_crash)
+    -> (final_crash' = true);
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis] (!stop) & (error_status_IPC_12 = crash) & (!final_crash)
+    -> (final_crash' = true);
+
+
+endmodule
+
+
+
+
+
+
+
+rewards "time"
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1] (ipc_time_handling = expected) : 1;
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1] (ipc_time_handling = fixed)    : ipc_time; 
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2] (ipc_time_handling = expected) : 1;
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2] (ipc_time_handling = fixed)    : ipc_time; 
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send] (ipc_time_handling = expected) : 1;
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send] (ipc_time_handling = fixed)    : ipc_time; 
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis] (ipc_time_handling = expected) : 1;
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis] (ipc_time_handling = fixed)    : ipc_time; 
+
+
+[rom_measure1_WORKING] (process_rom_measure1_working_time_handling = expected) : 1;
+[rom_measure1_WORKING] (process_rom_measure1_working_time_handling = fixed)    : process_rom_measure1_working_time;
+
+[ANSWER_from_rom_measure1_to_rom_measure2] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure1_to_rom_measure2] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_measure1_to_rom_analysis] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure1_to_rom_analysis] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_measure1_to_rom_control] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure1_to_rom_control] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_measure1_to_rom_send] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure1_to_rom_send] (ipc_time_handling = fixed)    : ipc_time; 
+[rom_measure2_WORKING] (process_rom_measure2_working_time_handling = expected) : 1;
+[rom_measure2_WORKING] (process_rom_measure2_working_time_handling = fixed)    : process_rom_measure2_working_time;
+
+[ANSWER_from_rom_measure2_to_rom_measure1] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure2_to_rom_measure1] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_measure2_to_rom_analysis] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure2_to_rom_analysis] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_measure2_to_rom_control] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure2_to_rom_control] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_measure2_to_rom_send] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_measure2_to_rom_send] (ipc_time_handling = fixed)    : ipc_time; 
+[rom_analysis_WORKING] (process_rom_analysis_working_time_handling = expected) : 1;
+[rom_analysis_WORKING] (process_rom_analysis_working_time_handling = fixed)    : process_rom_analysis_working_time;
+
+[ANSWER_from_rom_analysis_to_rom_measure1] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_analysis_to_rom_measure1] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_analysis_to_rom_measure2] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_analysis_to_rom_measure2] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_analysis_to_rom_control] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_analysis_to_rom_control] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_analysis_to_rom_send] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_analysis_to_rom_send] (ipc_time_handling = fixed)    : ipc_time; 
+[rom_control_WORKING] (process_rom_control_working_time_handling = expected) : 1;
+[rom_control_WORKING] (process_rom_control_working_time_handling = fixed)    : process_rom_control_working_time;
+
+[rom_send_WORKING] (process_rom_send_working_time_handling = expected) : 1;
+[rom_send_WORKING] (process_rom_send_working_time_handling = fixed)    : process_rom_send_working_time;
+
+[ANSWER_from_rom_send_to_rom_measure1] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_send_to_rom_measure1] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_send_to_rom_measure2] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_send_to_rom_measure2] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_send_to_rom_analysis] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_send_to_rom_analysis] (ipc_time_handling = fixed)    : ipc_time; 
+[ANSWER_from_rom_send_to_rom_control] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_rom_send_to_rom_control] (ipc_time_handling = fixed)    : ipc_time; 
+
+// repair
+//TODO
+endrewards
+
+rewards "utility"
+// Caution! This reward is defined according to the mars probe model. If you using another process 
+// structure you need to re-define (or uncomment) this reward structure!
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send_update] true : 1;
+
+endrewards
+
+
+//const int MAX_utility = 1;
+//module utility
+// utility: [0..MAX_utility] init 0;
+
+//[TRANSFER_from_analysis_via_IPC_11_to_send_update] true -> (utility' = min(MAX_utility,utility+1));
+//endmodule
+
+const int MAX_time;
+module time
+ time: [0..MAX_time] init 0;
+
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[TRANSFER_from_rom_analysis_via_IPC_9_to_rom_measure1] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[TRANSFER_from_rom_analysis_via_IPC_10_to_rom_measure2] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[TRANSFER_from_rom_control_via_IPC_12_to_rom_analysis] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+
+
+[rom_measure1_WORKING] (process_rom_measure1_working_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[rom_measure1_WORKING] (process_rom_measure1_working_time_handling = fixed)    -> (time' = min(MAX_time,time+process_rom_measure1_working_time));
+
+[ANSWER_from_rom_measure1_to_rom_measure2] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure1_to_rom_measure2] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_measure1_to_rom_analysis] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure1_to_rom_analysis] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_measure1_to_rom_control] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure1_to_rom_control] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_measure1_to_rom_send] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure1_to_rom_send] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[rom_measure2_WORKING] (process_rom_measure2_working_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[rom_measure2_WORKING] (process_rom_measure2_working_time_handling = fixed)    -> (time' = min(MAX_time,time+process_rom_measure2_working_time));
+
+[ANSWER_from_rom_measure2_to_rom_measure1] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure2_to_rom_measure1] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_measure2_to_rom_analysis] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure2_to_rom_analysis] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_measure2_to_rom_control] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure2_to_rom_control] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_measure2_to_rom_send] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_measure2_to_rom_send] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[rom_analysis_WORKING] (process_rom_analysis_working_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[rom_analysis_WORKING] (process_rom_analysis_working_time_handling = fixed)    -> (time' = min(MAX_time,time+process_rom_analysis_working_time));
+
+[ANSWER_from_rom_analysis_to_rom_measure1] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_analysis_to_rom_measure1] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_analysis_to_rom_measure2] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_analysis_to_rom_measure2] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_analysis_to_rom_control] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_analysis_to_rom_control] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_analysis_to_rom_send] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_analysis_to_rom_send] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[rom_control_WORKING] (process_rom_control_working_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[rom_control_WORKING] (process_rom_control_working_time_handling = fixed)    -> (time' = min(MAX_time,time+process_rom_control_working_time));
+
+[rom_send_WORKING] (process_rom_send_working_time_handling = expected) -> (time' = min(MAX_time,time+1));
+[rom_send_WORKING] (process_rom_send_working_time_handling = fixed)    -> (time' = min(MAX_time,time+process_rom_send_working_time));
+
+[ANSWER_from_rom_send_to_rom_measure1] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_send_to_rom_measure1] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_send_to_rom_measure2] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_send_to_rom_measure2] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_send_to_rom_analysis] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_send_to_rom_analysis] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+[ANSWER_from_rom_send_to_rom_control] (ipc_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[ANSWER_from_rom_send_to_rom_control] (ipc_time_handling = fixed)    -> (time' = min(MAX_time,time+normalized_ipc_time)); 
+
+[RESTART_progress] (crash_time_handling = expected) -> (time' = min(MAX_time,time+1)); 
+[RESTART_progress] (crash_time_handling = fixed)    -> (time' = min(MAX_time,time+crash_time)); 
+
+// repair
+//TODO
+
+endmodule
+module stop
+
+[stop] silent_data_corruption -> true;
+
+endmodule
+
+module crash
+ restarted: bool init false;
+ [RESTART_progress] (crashed) & (!restarted) -> prob_restart: (restarted' = true) + (1-prob_restart): true;
+ [RESTART]                       (restarted) -> (restarted' = false);
+endmodule

@@ -1,0 +1,12 @@
+
+module stop
+
+[stop] silent_data_corruption -> true;
+
+endmodule
+
+module crash
+ restarted: bool init false;
+ [RESTART_progress] (crashed) & (!restarted) -> prob_restart: (restarted' = true) + (1-prob_restart): true;
+ [RESTART]                       (restarted) -> (restarted' = false);
+endmodule

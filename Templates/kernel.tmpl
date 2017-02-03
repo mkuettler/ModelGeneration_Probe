@@ -1,0 +1,150 @@
+<%page args="process"/>
+
+//The kernel has to react on four types of syscalls: 
+// 1) a syscall of a client: the kernel transfer the message as soon as the resp. server is ready.
+// 2) a syscall of a server: The kernel transfers the ack of the server
+// 3) a syscall of a server: the kernel transfers the answer to the resp. process, and checks for transfering other messages to the receiving server 
+// 4) a syscall of a server: receive a new message without answering.
+// Different system call names are just for readabilty.
+// We need to store the transfer IPC id to use the same IPC gate during the whole transfer process.
+module KERNEL_cap_manager_process_${process.name}
+% if not "server" in [process.caps[IPC].access for IPC in process.caps]:
+ kernel_process_${process.name}_loc: [0..MAX_KERNEL_LOC] init inactive;
+% else:
+ kernel_process_${process.name}_loc: [0..MAX_KERNEL_LOC] init receiving;
+% endif
+// preparing, sending and receiving via IPC-gate...
+ ${process.name}_sending_IPC_id : [0..max_IPC_id] init 0;
+ ${process.name}_receiving_IPC_id : [0..max_IPC_id] init 0;
+   
+// the server received a message from process..
+ ${process.name}_received_message_from: [-1..${len(processes)}] init -1;
+
+////////////////////////////////
+// reacting to a clients syscall
+////////////////////////////////
+// the syscall
+ % for IPC in process.caps:
+  % if process.caps[IPC].access == "client":
+[${process.name}_withCapID_${process.caps[IPC].id}_as_client_SYSCALL]     (!stop) & (${process.name}_sending_IPC_id=0) -> (${process.name}_sending_IPC_id'=${process.caps[IPC].id}) & (kernel_process_${process.name}_loc' = sending);
+  % endif
+ % endfor
+
+// transfer
+ % for process2 in processes:
+  % for IPC in process.caps:
+   % for IPC2 in process2.caps:
+    % if (process.caps[IPC].id == process2.caps[IPC2].id) and (process.caps[IPC].access == "client") and (process2.caps[IPC2].access == "server"):
+[TRANSFER_from_${process.name}_via_IPC_${process.caps[IPC].id}_to_${process2.name}]        (!stop) & (${process.name}_sending_IPC_id = ${process.caps[IPC].id}) 
+                                                                                                   & (error_status_IPC_${process.caps[IPC].id} != correctable_error) 
+                                                                                                   & (kernel_process_${process.name}_loc = sending)
+        -> (1-prob_transfer): true + prob_transfer: (kernel_process_${process.name}_loc' = sent);
+[TRANSFER_from_${process.name}_via_IPC_${process.caps[IPC].id}_to_${process2.name}_update] (!stop) & (kernel_process_${process.name}_loc = sent)
+        -> (${process.name}_sending_IPC_id' = 0) & (kernel_process_${process.name}_loc' = receiving_answer);
+    % endif
+   % endfor
+  % endfor
+ % endfor
+// it is also possible to send to 'nowhere', in this case we assume an answer to be received immediately
+ % for IPC in process.caps:
+  % if not process.caps[IPC].id in [process2.caps[cap].id for process2 in processes for cap in process2.caps]:
+[TRANSFER_from_${process.name}_via_IPC_${process.caps[IPC].id}_to_nowhere]        (!stop) & (${process.name}_sending_IPC_id = ${process.caps[IPC].id}) 
+                                                                                          & (error_status_IPC_${process.caps[IPC].id} != correctable_error) 
+                                                                                          & (kernel_process_${process.name}_loc = sending)
+        -> (1-prob_transfer): true + prob_transfer: (kernel_process_${process.name}_loc' = sent);
+[TRANSFER_from_${process.name}_via_IPC_${process.caps[IPC].id}_to_nowhere_update] (!stop) & (kernel_process_${process.name}_loc = sent)
+        -> (${process.name}_sending_IPC_id' = 0) & (kernel_process_${process.name}_loc' = wake_up);
+  % endif
+% endfor
+
+// receiving an answer
+ % for process2 in processes:
+  % if (process2 != process) and (not process_is_client[process2]):
+[ANSWER_from_${process2.name}_to_${process.name}_update] (!stop) & (kernel_process_${process.name}_loc = receiving_answer)-> (kernel_process_${process.name}_loc' = wake_up);
+  % endif
+ % endfor
+
+///////////////////////////////////////////////////
+// reacting to a servers answer-and-receive syscall
+///////////////////////////////////////////////////
+% if "server" in [process.caps[IPC].access for IPC in process.caps]:
+// the syscall
+ % for IPC in process.caps:
+  % if process.caps[IPC].access == "server":
+[${process.name}_withCapID_${process.caps[IPC].id}_as_server_SYSCALL] (!stop) & (error_status_IPC_${process.caps[IPC].id} != correctable_error) -> (kernel_process_${process.name}_loc' = answering);
+  % endif
+ % endfor
+ 
+// answer a message
+ % for process2 in processes:
+   [ANSWER_from_${process.name}_to_${process2.name}]        (!stop) & (${process.name}_received_message_from = process_${process2.name}) & (kernel_process_${process.name}_loc = answering)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_${process.name}_loc' = answered);
+   [ANSWER_from_${process.name}_to_${process2.name}_update] (!stop) & (${process.name}_received_message_from = process_${process2.name}) & (kernel_process_${process.name}_loc = answered) 
+     -> (${process.name}_received_message_from' = empty) & (kernel_process_${process.name}_loc' = receiving);
+ % endfor
+ 
+// receive a message
+ % for process2 in processes:
+  % for IPC in process.caps:
+   % for IPC2 in process2.caps:
+    % if (process.caps[IPC].id == process2.caps[IPC2].id) and (process.caps[IPC].access == "server") and (process2.caps[IPC2].access == "client"):
+// synchronize, to enable transfer only if the process is ready to receive. Time for message transfer is modeled in the client.
+[TRANSFER_from_${process2.name}_via_IPC_${process.caps[IPC].id}_to_${process.name}]        (!stop) & (${process.name}_received_message_from = process_${process2.name} |  (${process.name}_received_message_from = empty)) & (kernel_process_${process.name}_loc = receiving) 
+        -> (${process.name}_received_message_from' = process_${process2.name});
+[TRANSFER_from_${process2.name}_via_IPC_${process.caps[IPC].id}_to_${process.name}_update] (!stop) & (${process.name}_received_message_from = process_${process2.name}) & (kernel_process_${process.name}_loc = receiving)    
+        -> (kernel_process_${process.name}_loc' = wake_up);
+    % endif
+   % endfor 
+  % endfor
+ % endfor
+ 
+
+///////////////////////////////////////////////////
+// reacting to a servers ack syscall
+///////////////////////////////////////////////////
+// the syscall
+ % for IPC in process.caps:
+  % if process.caps[IPC].access == "server":
+//[${process.name}_withCapID_${process.caps[IPC].id}_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_${process.caps[IPC].id} != correctable_error) -> (kernel_process_${process.name}_loc' = sending_ack);
+[${process.name}_as_server_ack_SYSCALL] (!stop) & (error_status_IPC_${process.caps[IPC].id} != correctable_error) -> (kernel_process_${process.name}_loc' = sending_ack);
+  % endif
+ % endfor
+ 
+// send the ack
+ % for process2 in processes:
+   [ANSWER_from_${process.name}_to_${process2.name}]        (!stop) & (${process.name}_received_message_from = process_${process2.name}) & (kernel_process_${process.name}_loc = sending_ack)
+     -> (1-prob_answer): true + (prob_answer): (kernel_process_${process.name}_loc' = ack_sent);
+   [ANSWER_from_${process.name}_to_${process2.name}_update] (!stop) & (${process.name}_received_message_from = process_${process2.name}) & (kernel_process_${process.name}_loc = ack_sent) 
+     ->(${process.name}_received_message_from' = empty) & (kernel_process_${process.name}_loc' = wake_up);
+ % endfor
+
+
+///////////////////////////////////////////////////
+// reacting to a servers just-receive syscall
+///////////////////////////////////////////////////
+// the syscall
+ % for IPC in process.caps:
+  % if process.caps[IPC].access == "server":
+[${process.name}_withCapID_${process.caps[IPC].id}_as_server_SYSCALL_only_receive] (!stop) & (error_status_IPC_${process.caps[IPC].id} != correctable_error) -> (kernel_process_${process.name}_loc' =receiving);
+  % endif
+ % endfor
+% endif
+
+// wake up (for all types of syscalls)
+[${process.name}_WAKE_UP]   (!stop) & (kernel_process_${process.name}_loc = wake_up) -> (kernel_process_${process.name}_loc' = inactive);
+
+
+// RESTART
+% if not "server" in [process.caps[IPC].access for IPC in process.caps]:
+[RESTART] true -> (kernel_process_${process.name}_loc' = inactive)
+                & (${process.name}_sending_IPC_id' = 0)
+                & (${process.name}_receiving_IPC_id' = 0)
+                & (${process.name}_received_message_from' = -1);
+% else:
+[RESTART] true -> (kernel_process_${process.name}_loc' = receiving)
+                & (${process.name}_sending_IPC_id' = 0)
+                & (${process.name}_receiving_IPC_id' = 0)
+                & (${process.name}_received_message_from' = -1);
+% endif
+
+endmodule

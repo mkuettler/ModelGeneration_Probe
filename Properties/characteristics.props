@@ -1,0 +1,8 @@
+const double p;
+
+// We assume the basich time unit to be 100 micro seconds.
+R{"utility"}min=? [ F (silent_data_corruption|final_crash) ]
+
+// We assume the basich time unit to be 100 micro seconds.
+R{"time"}=? [ F (silent_data_corruption|final_crash) ]
+

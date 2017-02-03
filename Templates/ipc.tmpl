@@ -1,0 +1,26 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//   IPC MODULES
+//
+////////////////////////////////////////////////////////////////////////////////
+// IPC gates do not have internal behavior, but only maintain data. Nevertheless, 
+// since we do not model kernel behavior explicit, sending time is modeled in the IPC gates. 
+// Therefor we use the double-location approach, i.e., we maintain a boolean variable ``<IPC>_send''
+// which is false on starting the message transfer and is set to true after expectably 
+// <time_sending> time steps. 
+//
+// IPC gate behavior depends on whether there are servers, clients or both of them connected. 
+// The IPC module differs depending on this.
+// Each IPC gate having clients connected manages a client buffer. Each client buffer element is
+// modeled by a single variable.
+
+
+% for cap_id in caps.keys():
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				IPC Gate ${cap_id}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ <%include 
+  file="ipc_gate.tmpl" 
+  args="cap_id=cap_id"
+ />
+% endfor

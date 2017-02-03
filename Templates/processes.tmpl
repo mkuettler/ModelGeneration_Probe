@@ -1,0 +1,16 @@
+% for process in processes:
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//+++				Processes ${process.name}
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+<%include 
+  file="process.tmpl" 
+  args="process=process"
+/>
+<%include 
+  file="kernel.tmpl" 
+  args="process=process"
+/>
+ 
+% endfor

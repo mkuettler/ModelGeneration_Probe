@@ -1,0 +1,126 @@
+/////////////////////////////////////////////////////////////////
+// 
+// ERROR MODULE
+// 
+/////////////////////////////////////////////////////////////////
+
+<%!
+import itertools
+
+def updates_repair(prob_repaired,repaired_element):
+ return "TODO"
+
+def prob_id(type,element):
+ if element[1] == "correct":
+  return "1" 
+ elif element[1] == "correctable_error":
+  return "(prob_correctable_error_{0})".format(type)
+ elif element[1] == "crash":
+  return "(prob_crash_{0})".format(type)
+ else:
+  return "ERROR: unknown error type in" + element[0]
+
+def update_terms(type,combination):
+ if list(combination) == []:
+  return "true"
+ return '&'.join([update_term(element) for element in combination])
+
+def update_term(element):
+  return "(error_status_IPC_{0}' = {1})".format(element[0],element[1])
+
+def prob(type,combination,factor):
+ return factor + ' '.join(["*" + prob_id(type,element) for element in combination])
+
+%>
+
+module error
+silent_data_corruption : bool init false;
+% for cap_id in caps.keys():
+error_status_IPC_${cap_id} : [0..2] init correct;
+% endfor
+final_crash : bool init false;
+
+% for process1 in processes:
+ % for process2 in processes:
+  % for IPC1 in process1.caps:
+   % for IPC2 in process2.caps:
+    % if (process1.caps[IPC1].id == process2.caps[IPC2].id) and (process1.caps[IPC1].access == "client") and (process2.caps[IPC2].access == "server"):
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[IPC1].id}_to_${process2.name}] (!stop) & (error_status_IPC_${process1.caps[IPC1].id} != crash) -> ${updates("transfer")};
+    % endif
+   % endfor
+  % endfor
+ % endfor
+% endfor
+
+% for process1 in processes:
+  % for IPC1 in process1.caps:
+    % if (not process1.caps[IPC1].id in [process2.caps[cap].id for process2 in processes for cap in process2.caps]) and (process1.caps[IPC1].access == "client"):
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[IPC1].id}_to_nowhere] (!stop) & (error_status_IPC_${process1.caps[IPC1].id} != crash) -> ${updates("transfer")};
+    % endif
+ % endfor
+% endfor
+
+% for process1 in processes:
+[${process1.name}_WORKING] (!stop)  -> ${updates("process_"+process1.name+"_working")};
+
+ % for process2 in processes:
+  % if (not process1 == process2) and (not process_is_client[process1]):
+[ANSWER_from_${process1.name}_to_${process2.name}] (!stop)  -> ${updates("transfer")};
+  % endif
+ % endfor
+% endfor
+
+// repair
+// TODO needs to be implemented
+// repair a detectable error in some IPC gate
+% for cap_id in caps.keys():
+//[repair_IPC_${cap_id}] (!stop) & (correctable_error_IPC_${cap_id}) & (is_used_IPC_${cap_id}) 
+//    -> ${updates_repair("prob_ipc_repair",cap_id)};
+% endfor
+
+[RESTART] true -> (silent_data_corruption' = false)
+% for cap_id in caps.keys():
+                   & (error_status_IPC_${cap_id}' =  correct)
+% endfor
+                   & (final_crash' = false);
+
+% for process1 in processes:
+ % for process2 in processes:
+  % for IPC1 in process1.caps:
+   % for IPC2 in process2.caps:
+    % if (process1.caps[IPC1].id == process2.caps[IPC2].id) and (process1.caps[IPC1].access == "client") and (process2.caps[IPC2].access == "server"):
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[IPC1].id}_to_${process2.name}] (!stop) & (error_status_IPC_${process1.caps[IPC1].id} = crash) & (!final_crash)
+    -> (final_crash' = true);
+    % endif
+   % endfor
+  % endfor
+ % endfor
+% endfor
+
+% for process1 in processes:
+  % for IPC1 in process1.caps:
+    % if (not process1.caps[IPC1].id in [process2.caps[cap].id for process2 in processes for cap in process2.caps]) and (process1.caps[IPC1].access == "client"):
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[IPC1].id}_to_nowhere] (!stop) & (error_status_IPC_${process1.caps[IPC1].id} = crash) & (!final_crash)
+    -> (final_crash' = true);
+    % endif
+ % endfor
+% endfor
+
+endmodule
+
+
+<%def name="update(type,combination,factor)">\
+ ${"{0} : {1}".format(prob(type,combination,factor) , update_terms(type,combination))}\
+</%def>
+
+
+
+<%def name="updates(type)">
+     (1 - prob_silent_data_corruption_${type} - (${'+'.join(prob(type,combination,"(1-prob_silent_data_corruption_{})".format(type)) for n in xrange(1,multiple_errors+1) for combination in itertools.combinations(error_cap_list,n))})): true
+        + prob_silent_data_corruption_${type}: (silent_data_corruption' = true)
+    % for n in xrange(1,multiple_errors+1):
+     % for combi in itertools.combinations(error_cap_list,n):
+        + ${update(type,combi,"(1-prob_silent_data_corruption_{})".format(type))}
+     % endfor
+    % endfor
+</%def>

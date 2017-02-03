@@ -1,0 +1,46 @@
+rewards "time"
+% for process1 in processes:
+ % for process2 in processes:
+  % for cap1 in process1.caps:
+   % for cap2 in process2.caps:
+    % if (process1.caps[cap1].id == process2.caps[cap2].id) and (process1.caps[cap1].access=="client") and (process2.caps[cap2].access=="server"):
+  // errors may happen during message transfer in the stored server cap
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_${process2.name}] (ipc_time_handling = expected) : 1;
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_${process2.name}] (ipc_time_handling = fixed)    : ipc_time; 
+    % endif
+   % endfor
+  % endfor
+ % endfor
+% endfor
+
+% for process1 in processes:
+ % for cap1 in process1.caps:
+  % if not "server" in [process2.caps[IPC].access for IPC in process2.caps]:
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_nowhere] (ipc_time_handling = expected) : 1; 
+[TRANSFER_from_${process1.name}_via_IPC_${process1.caps[cap1].id}_to_nowhere] (ipc_time_handling = fixed)    : ipc_time; 
+  % endif
+ % endfor
+% endfor
+
+% for process1 in processes:
+[${process1.name}_WORKING] (process_${process1.name}_working_time_handling = expected) : 1;
+[${process1.name}_WORKING] (process_${process1.name}_working_time_handling = fixed)    : process_${process1.name}_working_time;
+
+ % for process2 in processes:
+  % if (not process1 == process2) and (not process_is_client[process1]):
+[ANSWER_from_${process1.name}_to_${process2.name}] (ipc_time_handling = expected) : 1; 
+[ANSWER_from_${process1.name}_to_${process2.name}] (ipc_time_handling = fixed)    : ipc_time; 
+  % endif
+ % endfor
+% endfor
+
+// repair
+//TODO
+endrewards
+
+rewards "utility"
+// Caution! This reward is defined according to the mars probe model. If you using another process 
+// structure you need to re-define (or uncomment) this reward structure!
+[TRANSFER_from_rom_analysis_via_IPC_11_to_rom_send_update] true : 1;
+
+endrewards

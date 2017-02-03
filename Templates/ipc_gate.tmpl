@@ -1,0 +1,102 @@
+<%page args="cap_id"/>
+
+
+ <%
+# how many servers and clients are connected?
+real_num_servers = caps[cap_id].count("server")
+real_num_clients = caps[cap_id].count("client")
+num_servers = len(processes)
+num_clients = real_num_clients # len(processes)
+# which process is connected to this gate as a server?
+thisServer= "default_server";
+for process in processes:
+  for cap in process.caps:
+    if cap_id == process.caps[cap].id and process.caps[cap].access == "server":
+      thisServer = process.name
+def move_foreward(cap_id):
+  return ["(IPC_{2}_client_bufferElement_{0}' = IPC_{2}_client_bufferElement_{1})".format(j,j+1,cap_id) for j in xrange(0,num_clients-1)]
+def delete_last(cap_id):
+  if num_clients>0:
+    return ["(IPC_{0}_client_bufferElement_{1}' = empty)".format(cap_id,num_clients-1)]
+  return ["true"]
+ %>\
+ 
+// We manage a pointer pointing on the current client buffer element
+% if num_clients>0:
+formula IPC_${cap_id}_client_buffer_pointer = ${'+'.join(["(IPC_{0}_client_bufferElement_{1} = empty ? 0 : 1)".format(cap_id,i) for i in xrange(0,num_clients)])};
+% endif 
+
+% if thisServer == "":
+const bool IPC_${cap_id}_hasServer = false;
+% else:
+const bool IPC_${cap_id}_hasServer = true;
+% endif
+
+// TODO - which values can the server-cap and the client-buffer variables be assigned?
+const IPC_${cap_id}_num_clients = ${len(processes)}; //${num_clients};
+const IPC_${cap_id}_num_servers = ${len(processes)}; //${num_servers};
+
+module IPC_${cap_id}
+// the clients buffer
+% for i in xrange(0,num_clients):
+  IPC_${cap_id}_client_bufferElement_${i}: [-1..IPC_${cap_id}_num_clients] init empty;
+% endfor
+  
+// the client makes a syscall - add it to the buffer
+% for process in processes:
+ % for IPC in process.caps:
+  % if (process.caps[IPC].id == cap_id) and (process.caps[IPC].access == "client"):
+   % for i in xrange(0,num_clients):
+[${process.name}_withCapID_${cap_id}_as_client_SYSCALL] (!stop) & (IPC_${cap_id}_client_buffer_pointer = ${i}) -> (IPC_${cap_id}_client_bufferElement_${i}' = process_${process.name});
+   % endfor
+  % endif
+ % endfor
+% endfor
+  
+// message transfer - process1 sends message m to process2
+% for process1 in processes:
+ % for process2 in processes:
+  % for cap1 in process1.caps:
+   % for cap2 in process2.caps:
+    % if (process1.caps[cap1].id == cap_id) and (process2.caps[cap2].id == cap_id) and (process1.caps[cap1].access=="client") and (process2.caps[cap2].access=="server"):
+[TRANSFER_from_${process1.name}_via_IPC_${cap_id}_to_${process2.name}]        (!stop) & (IPC_${cap_id}_client_bufferElement_0 = process_${process1.name}) & (error_status_IPC_${cap_id} != correctable_error) & (IPC_${cap_id}_hasServer)
+     -> true;
+[TRANSFER_from_${process1.name}_via_IPC_${cap_id}_to_${process2.name}_update] (!stop) & (IPC_${cap_id}_client_bufferElement_0 = process_${process1.name}) & (error_status_IPC_${cap_id} != correctable_error) & (IPC_${cap_id}_hasServer)
+     -> ${pull(cap_id)} 
+    % endif
+   % endfor
+  % endfor
+ % endfor
+% endfor
+
+% if (num_clients>0) and (num_servers == 0):
+ % for process1 in processes:
+  % for cap1 in process1.caps:
+   % if (process1.caps[cap1] == cap_id) and (process1.caps[cap_id].access=="client"):
+[TRANSFER_from_${process1.name}_via_IPC_${cap_id}_to_nowhere]        (!stop) & (IPC_${cap_id}_client_bufferElement_0 = process_${process1.name}) & (error_status_IPC_${cap_id} != correctable_error) & (!IPC_${cap_id}_hasServer)
+      -> true;
+[TRANSFER_from_${process1.name}_via_IPC_${cap_id}_to_nowhere_update] (!stop) & (IPC_${cap_id}_client_bufferElement_0 = process_${process1.name}) & (error_status_IPC_${cap_id} != correctable_error) & (!IPC_${cap_id}_hasServer)
+      -> ${pull(cap_id)} 
+   % else:
+[TRANSFER_from_${process1.name}_via_IPC_${cap_id}_to_${process2.name}]        false -> true;
+[TRANSFER_from_${process1.name}_via_IPC_${cap_id}_to_${process2.name}_update] false -> true;
+   % endif
+  % endfor
+ % endfor
+% endif
+ 
+// crashing
+% if num_clients>0:
+[RESTART] true ->  ${'&'.join(["(IPC_{0}_client_bufferElement_{1}' = empty)".format(cap_id,i)  for i in xrange(0,num_clients)])};
+% else:
+[RESTART] true ->  true;
+% endif
+
+endmodule
+ 
+<%def name="pull(cap_id)">\
+  ${'&'.join(move_foreward(cap_id) + delete_last(cap_id))};
+</%def>
+
+
+

@@ -1,0 +1,26 @@
+Command	rom/measure1
+  Cap	acc	9	server	nil
+  Runtime	1
+  prob_send	0
+Command	rom/measure2
+  Cap	acc	10	server	nil
+  Runtime	1
+  prob_send	0
+Command	rom/analysis
+  Cap	s	11	client	nil
+  Cap	m2	10	client	nil
+  Cap	m1	9	client	nil
+  Cap	con	12	server	nil
+  Runtime	5
+  prob_send	0.98
+  prob_target	s	0.02
+  prob_target	m2	0.58
+  prob_target	m1	0.4
+Command	rom/control
+  Cap	con	12	client	nil
+  Runtime	25
+  prob_send	1
+Command	rom/send
+  Cap	c	11	server	nil
+  Runtime	50
+  prob_send	0

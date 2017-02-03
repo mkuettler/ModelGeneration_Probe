@@ -1,0 +1,221 @@
+
+// Model of an inter process communication protocol. This model is created using a tool chain. 
+// For modification please do not change this model but the input script processes.data and 
+// the template script createModel.py 
+// We modeled the processes' message transfer behavior after all capabilities are allocated.
+// An initial phase is NOT modeled.
+// We assume the all memory to be correct after initial / restart phase.
+
+dtmc
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// CONSTANT DEFINITIONS
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// TIME HANDLING
+const int ipc_time_handling = ${ipc_time_handling};
+const int repair_time_handling=${repair_time_handling};
+const int crash_time_handling=${crash_time_handling};
+% for process in processes:
+const int process_${process.name}_answer_working_time_handling  = ${process.answer_runtime_handling};
+const int process_${process.name}_message_working_time_handling = ${process.call_runtime_handling};
+const int process_${process.name}_ack_working_time_handling     = ${process.ack_runtime_handling};
+formula process_${process.name}_working_time_handling = 
+     (process_${process.name}_message_type = message ? process_${process.name}_message_working_time_handling
+    : process_${process.name}_message_type = answer  ? process_${process.name}_answer_working_time_handling
+    :                                                  process_${process.name}_ack_working_time_handling);
+% endfor
+
+// TIMES
+const int ipc_time = ${ipc_time};
+const int normalized_ipc_time = floor(${ipc_time});
+const int answer_time = ${ipc_time};
+const int repair_time=${repair_time};
+const int crash_time=${crash_time};
+% for process in processes:
+const int process_${process.name}_answer_working_time  = ${process.answer_time};
+const int process_${process.name}_message_working_time = ${process.call_time};
+const int process_${process.name}_ack_working_time     = ${process.ack_time};
+formula process_${process.name}_working_time = 
+     (process_${process.name}_message_type = message ? process_${process.name}_message_working_time
+    : process_${process.name}_message_type = answer  ? process_${process.name}_answer_working_time
+    :                                                  process_${process.name}_ack_working_time);
+% endfor
+
+// communication probabilities
+% for process in processes:
+ % for cap_id in [process.caps[each].id for each in process.caps if process.caps[each].access == "client"]:
+  % if (process.communicate == "probabilistic"):
+   % if (cap_id in process.probability_communicate.keys()):
+const double prob_message_from_${process.name}_to_gate_${cap_id} = ${process.probability_communicate[cap_id]};
+   % endif
+  % endif
+ % endfor
+% endfor
+
+// error probabilities
+const double prob_error_per_timestep  = ${probability_error_per_timestep};
+const double prob_correctable_error_per_timestep      = prob_error_per_timestep * ${probability_correctable_error_per_timestep};
+const double prob_crash_per_timestep                  = prob_error_per_timestep * ${probability_crash_per_timestep};
+const double prob_silent_data_corruption_per_timestep = prob_error_per_timestep * ${probability_silent_data_corruption_per_timestep};
+//const double prob_no_error_per_timestep               = (1-(prob_correctable_error_per_timestep+prob_crash_per_timestep+prob_silent_data_corruption_per_timestep));
+// errors during crash / recovery may be different
+const double prob_correctable_error_per_crash_timestep      = ${probability_correctable_error_per_crash_timestep};
+const double prob_crash_per_crash_timestep                  = ${probability_crash_per_crash_timestep};
+const double prob_silent_data_corruption_per_crash_timestep = ${probability_silent_data_corruption_per_crash_timestep};
+//const double prob_no_error_per_crash_timestep               = (1-(prob_correctable_error_per_crash_timestep+prob_crash_per_crash_timestep+prob_silent_data_corruption_per_crash_timestep));
+
+// errors during transfer
+const double prob_correctable_error_transfer      = (ipc_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,ipc_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_transfer                  = (ipc_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,ipc_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_transfer = (ipc_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,ipc_time)) : prob_silent_data_corruption_per_timestep);
+
+// errors during answering
+const double prob_correctable_error_answer      = (ipc_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,answer_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_answer                  = (ipc_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,answer_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_answer = (ipc_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,answer_time)) : prob_silent_data_corruption_per_timestep);
+
+// errors during repair
+const double prob_correctable_error_repair      = (repair_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,repair_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_repair                  = (repair_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,repair_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_repair = (repair_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,repair_time)) : prob_silent_data_corruption_per_timestep);
+
+// errors during crash/recovery
+const double prob_correctable_error_crash      = (crash_time_handling = fixed? (1-pow(1-prob_correctable_error_per_crash_timestep,crash_time)) : prob_correctable_error_per_crash_timestep);
+const double prob_crash_crash                  = (crash_time_handling = fixed? (1-pow(1-prob_crash_per_crash_timestep,crash_time)) : prob_crash_per_crash_timestep);
+const double prob_silent_data_corruption_crash = (crash_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_crash_timestep,crash_time)) : prob_silent_data_corruption_per_crash_timestep);
+
+// errors during a process' work
+% for process in processes:
+const double prob_correctable_error_process_${process.name}_message_working = (process_${process.name}_message_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_${process.name}_message_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_${process.name}_answer_working  = (process_${process.name}_answer_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_${process.name}_answer_working_time)) : prob_correctable_error_per_timestep);
+const double prob_correctable_error_process_${process.name}_ack_working     = (process_${process.name}_ack_working_time_handling = fixed? (1-pow(1-prob_correctable_error_per_timestep,process_${process.name}_ack_working_time)) : prob_correctable_error_per_timestep);
+const double prob_crash_process_${process.name}_message_working = (process_${process.name}_message_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_${process.name}_message_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_${process.name}_answer_working  = (process_${process.name}_answer_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_${process.name}_answer_working_time)) : prob_crash_per_timestep);
+const double prob_crash_process_${process.name}_ack_working     = (process_${process.name}_ack_working_time_handling = fixed? (1-pow(1-prob_crash_per_timestep,process_${process.name}_ack_working_time)) : prob_crash_per_timestep);
+const double prob_silent_data_corruption_process_${process.name}_message_working = (process_${process.name}_message_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_${process.name}_message_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_${process.name}_answer_working  = (process_${process.name}_answer_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_${process.name}_answer_working_time)) : prob_silent_data_corruption_per_timestep);
+const double prob_silent_data_corruption_process_${process.name}_ack_working     = (process_${process.name}_ack_working_time_handling = fixed? (1-pow(1-prob_silent_data_corruption_per_timestep,process_${process.name}_ack_working_time)) : prob_silent_data_corruption_per_timestep);
+% endfor
+ 
+% for process in processes:
+formula prob_correctable_error_process_${process.name}_working 
+   = (process_${process.name}_message_type = message ? prob_correctable_error_process_${process.name}_message_working
+    : process_${process.name}_message_type = answer  ? prob_correctable_error_process_${process.name}_answer_working
+    :                                                  prob_correctable_error_process_${process.name}_ack_working);
+formula prob_crash_process_${process.name}_working 
+   = (process_${process.name}_message_type = message ? prob_crash_process_${process.name}_message_working
+    : process_${process.name}_message_type = answer  ? prob_crash_process_${process.name}_answer_working
+    :                                                  prob_crash_process_${process.name}_ack_working);
+formula prob_silent_data_corruption_process_${process.name}_working 
+   = (process_${process.name}_message_type = message ? prob_silent_data_corruption_process_${process.name}_message_working
+    : process_${process.name}_message_type = answer  ? prob_silent_data_corruption_process_${process.name}_answer_working
+    :                                                  prob_silent_data_corruption_process_${process.name}_ack_working);
+% endfor
+
+
+// probabilities of finishing a time-consuming job within a step
+const double prob_transfer = (ipc_time_handling=fixed? 1 : 1/ipc_time);
+const double prob_repair = (repair_time_handling=fixed? 1 : 1/repair_time);
+const double prob_restart = (crash_time_handling=fixed? 1 : 1/crash_time);
+% for process in processes:
+const double prob_process_${process.name}_answer_working  = (process_${process.name}_answer_working_time  = 0 ? 0 : (process_${process.name}_answer_working_time_handling=fixed? 1 : 1/process_${process.name}_answer_working_time));
+const double prob_process_${process.name}_message_working = (process_${process.name}_message_working_time = 0 ? 0 : (process_${process.name}_message_working_time_handling=fixed? 1 : 1/process_${process.name}_message_working_time));
+const double prob_process_${process.name}_ack_working     = (process_${process.name}_ack_working_time     = 0 ? 0 : (process_${process.name}_ack_working_time_handling=fixed? 1 : 1/process_${process.name}_ack_working_time));
+% endfor
+
+// Maybe answering a message needs more / less time then sending a message? We define a constant providently.
+const double prob_answer = prob_transfer;
+
+// probability of message_type = message / answer / ack
+% for process in processes:
+ % if ("server" in [each.access for each in process.caps.values()]) and ("client" in [each.access for each in process.caps.values()]):
+  % if process.call_type == "probabilistic":
+const double prob_process_${process.name}_call  = ${process.prob_call[1]};
+  % endif
+ % endif
+% endfor
+
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NAMES
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// time handling names
+const int expected = -1;
+const int fixed = 1;
+
+
+// capability types
+const int server = -1;
+const int unset  = 0;
+const int client = 1;
+
+// other string definitions
+const int empty = -1;
+
+// message types
+const int none    = -1;
+const int answer  = 0;
+const int message = 1;
+const int ack     = 2;
+
+% for i in xrange(1,len(processes)+1):
+const int process_${processes[i-1].name} = ${i};
+% endfor
+const int default_server = 0;
+
+// error types
+const int correct = 0;
+const int correctable_error = 1;
+const int crash = 2;
+
+// location names
+//client
+const int working           = 0;
+const int about_to_send     = 1;
+const int blocked_as_client = 2;
+const int MAX_CL_LOC = 2;
+
+//server
+//const int working               = 0; // redundant from client
+//const int about_to_send         = 1; // redundant from client
+//const int blocked_as_client     = 2; // redundant from client
+const int about_to_answer         = 3;
+const int blocked_as_server       = 4;
+const int about_to_ack            = 5;
+const int about_to_syscall_server = 6;
+const int MAX_SE_LOC = 6;
+
+// kernel
+const int inactive         = 0;
+const int sending          = 1;
+const int sent             = 2;
+const int receiving_answer = 3;
+const int answering        = 4;
+const int answered         = 5;
+const int receiving        = 6;
+const int sending_ack      = 7;
+const int ack_sent         = 8;
+const int wake_up          = 9;
+const int MAX_KERNEL_LOC = 9;
+
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// MISC
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const int max_IPC_id = ${max_IPC_id};
+
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// FORMULAS
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+% for process in processes:
+//formula ${process.name}_message_receive = ${process.name}_location = blocked_as_client & ${process.name}_wake_up;
+% endfor
+
+formula crashed = (final_crash);
+
+//The model ends in a trap-state eventually trap-state is determined by
+formula stop = (silent_data_corruption) | (final_crash);
